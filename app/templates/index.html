@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нейросеть для агрономии</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <div class="glass-bg"></div>
+    <div class="container">
+        <header>
+            <h1>Анализ Растений AI 🌿</h1>
+            <p>Загрузите фото пшеницы или руколы для сегментации и замера площади.</p>
+        </header>
+
+        {% if error_message %}
+        <div class="error-banner">{{ error_message }}</div>
+        {% endif %}
+
+        <main>
+            {% if not success %}
+            <form action="/upload" method="post" enctype="multipart/form-data" class="upload-area" id="upload-form">
+                <div class="drop-zone" id="drop-zone">
+                    <span class="drop-zone__prompt">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" class="upload-icon">
+                            <path d="M12 4v12m0-12l4 4m-4-4l-4 4m10 8H6" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round" />
+                        </svg>
+                        <br>Перетащите изображение сюда<br>или кликните для выбора
+                    </span>
+                    <input type="file" name="file" id="file-input" class="drop-zone__input" accept="image/*" required>
+                </div>
+                <div class="checkbox-container" style="margin-top: 1rem; text-align: center;">
+                    <label
+                        style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; color: #f8fafc;">
+                        <input type="checkbox" name="show_boxes" checked
+                            style="width: 18px; height: 18px; cursor: pointer;">
+                        Отображать рамки (Bounding Boxes)
+                    </label>
+                </div>
+                <!-- Loading state overlay -->
+                <div class="loading-overlay" id="loading-overlay">
+                    <div class="spinner"></div>
+                    <p>Нейросеть анализирует растение...</p>
+                </div>
+            </form>
+            {% else %}
+
+            <div class="results-container">
+                <div class="result-header">
+                    <div class="plant-class">
+                        <h2>{{ class_name }}</h2>
+                        <div class="badges">
+                            <span class="badge badge-length">Общая длина: {{ total_length }} мм</span>
+                            <span class="badge badge-area">Общая площадь: {{ total_area }} мм²</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cards-layout">
+                    <!-- Original Annotated Image -->
+                    <div class="card image-card">
+                        <h3>Результат сегментации</h3>
+                        <img src="data:image/jpeg;base64,{{ annotated_b64 }}" alt="Сегментация" class="result-image">
+                    </div>
+
+                    <!-- Statistics Chart -->
+                    {% if chart_b64 %}
+                    <div class="card chart-card">
+                        <h3>Соотношение площадей</h3>
+                        <img src="data:image/jpeg;base64,{{ chart_b64 }}" alt="Статистика" class="result-chart">
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Metrics Data Table -->
+                <div class="card metrics-card">
+                    <h3>Детализация по частям</h3>
+                    <div class="metrics-grid">
+                        {% for c_name, data in class_metrics.items() %}
+                        <div class="metric-item">
+                            <h4 class="metric-title">{{ c_name.capitalize() }} <span class="count-tag">{{ data.count }}
+                                    шт.</span></h4>
+                            <div class="metric-stats">
+                                <p><strong>Площадь:</strong> {{ "%.2f"|format(data.area) }} мм²</p>
+                                <p><strong>Длина:</strong> {{ "%.2f"|format(data.length) }} мм</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <a href="/" class="btn-primary">Загрузить еще фото</a>
+                </div>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <script>
+        // Drag and Drop Logic + submit spinner
+        const dropZoneElement = document.getElementById("drop-zone");
+        const inputElement = document.getElementById("file-input");
+        const formElement = document.getElementById("upload-form");
+        const loadingOverlay = document.getElementById("loading-overlay");
+
+        if (dropZoneElement) {
+            dropZoneElement.addEventListener("click", e => {
+                inputElement.click();
+            });
+
+            inputElement.addEventListener("change", e => {
+                if (inputElement.files.length) {
+                    updateThumbnail(dropZoneElement, inputElement.files[0]);
+                    submitForm();
+                }
+            });
+
+            dropZoneElement.addEventListener("dragover", e => {
+                e.preventDefault();
+                dropZoneElement.classList.add("drop-zone--over");
+            });
+
+            ["dragleave", "dragend"].forEach(type => {
+                dropZoneElement.addEventListener(type, e => {
+                    dropZoneElement.classList.remove("drop-zone--over");
+                });
+            });
+
+            dropZoneElement.addEventListener("drop", e => {
+                e.preventDefault();
+                if (e.dataTransfer.files.length) {
+                    inputElement.files = e.dataTransfer.files;
+                    updateThumbnail(dropZoneElement, e.dataTransfer.files[0]);
+                    submitForm();
+                }
+                dropZoneElement.classList.remove("drop-zone--over");
+            });
+        }
+
+        function updateThumbnail(dropZoneElement, file) {
+            let prompt = dropZoneElement.querySelector(".drop-zone__prompt");
+            if (prompt) prompt.innerHTML = file.name;
+        }
+
+        function submitForm() {
+            loadingOverlay.style.display = 'flex';
+            formElement.submit();
+        }
+    </script>
+</body>
+
+</html>
