@@ -4,19 +4,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Нейросеть для агрономии</title>
+    <title>Анализ Растений AI</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Outfit:wght@400;600;800&display=swap"
-        rel="stylesheet">
 </head>
 
 <body>
     <div class="glass-bg"></div>
     <div class="container">
+
         <header>
-            <h1>Анализ Растений AI 🌿</h1>
-            <p>Загрузите фото пшеницы или руколы для сегментации и замера площади.</p>
+            <div class="logo-container">
+                <svg viewBox="0 0 24 24" fill="none" class="logo-icon" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22c0-4.418.001-8.204 0-12" />
+                    <path d="M12 10c0-3 2-6 6-6-3 0-6 2-6 6z" fill="currentColor" />
+                    <path d="M12 14c0-3-2-6-6-6 3 0 6 2 6 6z" fill="currentColor" />
+                    <path d="M12 18c0-2.5 1.5-4 4-4-2 0-4 1.5-4 4z" fill="currentColor" />
+                </svg>
+            </div>
+            <h1>Анализ Растений AI</h1>
+            <p>Продвинутая сегментация и замер биометрических показателей пшеницы и руколы на базе нейросетей</p>
         </header>
 
         {% if error_message %}
@@ -25,71 +32,102 @@
 
         <main>
             {% if not success %}
-            <form action="/upload" method="post" enctype="multipart/form-data" class="upload-area" id="upload-form">
+            <!-- INPUT STATE -->
+            <form action="/upload" method="post" enctype="multipart/form-data" class="upload-area premium-card"
+                id="upload-form">
                 <div class="drop-zone" id="drop-zone">
-                    <span class="drop-zone__prompt">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" class="upload-icon">
-                            <path d="M12 4v12m0-12l4 4m-4-4l-4 4m10 8H6" stroke="currentColor" stroke-width="2"
+                    <div class="upload-icon-wrapper">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" class="upload-icon">
+                            <path d="M12 4v12m0-12l4 4m-4-4l-4 4m10 8H6" stroke="currentColor" stroke-width="2.5"
                                 stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
-                        <br>Перетащите изображение сюда<br>или кликните для выбора
+                    </div>
+                    <span class="drop-zone__prompt">
+                        Перетащите изображение растения сюда
+                        <span class="prompt-subtext">или кликните для выбора файла с устройства</span>
                     </span>
                     <input type="file" name="file" id="file-input" class="drop-zone__input" accept="image/*" required>
                 </div>
-                <div class="checkbox-container" style="margin-top: 1rem; text-align: center;">
-                    <label
-                        style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; color: #f8fafc;">
-                        <input type="checkbox" name="show_boxes" checked
-                            style="width: 18px; height: 18px; cursor: pointer;">
-                        Отображать рамки (Bounding Boxes)
+
+                <div class="settings-bar">
+                    <label class="custom-checkbox">
+                        <input type="checkbox" name="show_boxes" checked>
+                        <span>Отображать рамки (Bounding Boxes)</span>
                     </label>
                 </div>
-                <!-- Loading state overlay -->
+
+                <!-- LOADING OVERLAY -->
                 <div class="loading-overlay" id="loading-overlay">
-                    <div class="spinner"></div>
-                    <p>Нейросеть анализирует растение...</p>
+                    <div class="scanner-box">
+                        <div class="scanner-line"></div>
+                    </div>
+                    <p>Анализ структуры растения...</p>
                 </div>
             </form>
             {% else %}
 
+            <!-- OUTPUT STATE -->
             <div class="results-container">
-                <div class="result-header">
+                <div class="premium-card result-hero">
                     <div class="plant-class">
                         <h2>{{ class_name }}</h2>
                         <div class="badges">
-                            <span class="badge badge-length">Общая длина: {{ total_length }} мм</span>
-                            <span class="badge badge-area">Общая площадь: {{ total_area }} мм²</span>
+                            <span class="badge badge-length">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                                </svg>
+                                Длина: {{ total_length }} мм
+                            </span>
+                            <span class="badge badge-area">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                </svg>
+                                Площадь: {{ total_area }} мм²
+                            </span>
                         </div>
                     </div>
                 </div>
 
                 <div class="cards-layout">
                     <!-- Original Annotated Image -->
-                    <div class="card image-card">
-                        <h3>Результат сегментации</h3>
-                        <img src="data:image/jpeg;base64,{{ annotated_b64 }}" alt="Сегментация" class="result-image">
+                    <div class="premium-card visual-card">
+                        <h3>Сегментация</h3>
+                        <div class="image-wrapper">
+                            <img src="data:image/jpeg;base64,{{ annotated_b64 }}" alt="Сегментация"
+                                class="result-image">
+                        </div>
                     </div>
 
                     <!-- Statistics Chart -->
                     {% if chart_b64 %}
-                    <div class="card chart-card">
-                        <h3>Соотношение площадей</h3>
-                        <img src="data:image/jpeg;base64,{{ chart_b64 }}" alt="Статистика" class="result-chart">
+                    <div class="premium-card visual-card">
+                        <h3>Распределение площадей</h3>
+                        <div class="image-wrapper">
+                            <img src="data:image/jpeg;base64,{{ chart_b64 }}" alt="Статистика" class="result-chart">
+                        </div>
                     </div>
                     {% endif %}
                 </div>
 
                 <!-- Metrics Data Table -->
-                <div class="card metrics-card">
-                    <h3>Детализация по частям</h3>
+                <div class="premium-card metrics-card">
+                    <h3
+                        style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; margin-bottom: 0.5rem; text-align: center;">
+                        Морфология по частям</h3>
                     <div class="metrics-grid">
                         {% for c_name, data in class_metrics.items() %}
                         <div class="metric-item">
-                            <h4 class="metric-title">{{ c_name.capitalize() }} <span class="count-tag">{{ data.count }}
-                                    шт.</span></h4>
+                            <h4 class="metric-title">
+                                {{ c_name.capitalize() }}
+                                <span class="count-tag">{{ data.count }} шт.</span>
+                            </h4>
                             <div class="metric-stats">
-                                <p><strong>Площадь:</strong> {{ "%.2f"|format(data.area) }} мм²</p>
-                                <p><strong>Длина:</strong> {{ "%.2f"|format(data.length) }} мм</p>
+                                <p>Площадь <span class="stat-value">{% if data.area %}{{ "%.2f"|format(data.area) }}{%
+                                        else %}0.00{% endif %} мм²</span></p>
+                                <p>Длина <span class="stat-value">{% if data.length %}{{ "%.2f"|format(data.length) }}{%
+                                        else %}0.00{% endif %} мм</span></p>
                             </div>
                         </div>
                         {% endfor %}
@@ -97,7 +135,15 @@
                 </div>
 
                 <div class="actions">
-                    <a href="/" class="btn-primary">Загрузить еще фото</a>
+                    <a href="/" class="btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 20 0 0 1-2 2H5a2 20 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Загрузить новое фото
+                    </a>
                 </div>
             </div>
             {% endif %}
@@ -147,11 +193,15 @@
 
         function updateThumbnail(dropZoneElement, file) {
             let prompt = dropZoneElement.querySelector(".drop-zone__prompt");
-            if (prompt) prompt.innerHTML = file.name;
+            if (prompt) prompt.innerHTML = `<span style="color:var(--primary-light)">Выбран файл:</span><br>${file.name}`;
         }
 
         function submitForm() {
             loadingOverlay.style.display = 'flex';
+            // Slight delay to allow display:flex to apply before opacity transition
+            setTimeout(() => {
+                loadingOverlay.classList.add('active');
+            }, 10);
             formElement.submit();
         }
     </script>
