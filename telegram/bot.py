@@ -16,8 +16,8 @@ from core.ml import process_image
 
 logging.basicConfig(level=logging.INFO)
 
-# Увеличиваем таймаут для работы без VPN при медленном соединении к серверам Telegram
-session = AiohttpSession(timeout=60)
+# Увеличиваем таймаут для работы без VPN при очень медленном соединении к серверам Telegram (до 120 сек)
+session = AiohttpSession(timeout=120)
 bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
 
