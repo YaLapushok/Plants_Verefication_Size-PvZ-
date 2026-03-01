@@ -65,12 +65,12 @@ def process_image(image_bytes: bytes, show_boxes: bool = True) -> dict:
         # 2. Segmentation
         if is_arugula:
             plant_name_ru = "Рукола 🌱"
-            seg_results = arugula_seg_model(image, verbose=False)
             
-            # Костыль: меняем классы 'stem' и 'leaf' местами только для руколы
-            # Так как модель ошибочно помечает стебель классом листка и наоборот
-            if seg_results and len(seg_results) > 0 and getattr(seg_results[0], 'names', None):
-                names_dict = seg_results[0].names
+            # Глобальный костыль для правильной отрисовки меток методом .plot()
+            # Модель YOLO кэширует имена классов на уровне самого объекта модели.
+            # Если мы хотя бы раз поменяем их местами глобально, plot() будет рисовать правильно.
+            if hasattr(arugula_seg_model, 'names'):
+                names_dict = arugula_seg_model.names
                 leaf_id, stem_id = None, None
                 for k, v in names_dict.items():
                     v_lower = str(v).lower()
@@ -79,31 +79,27 @@ def process_image(image_bytes: bytes, show_boxes: bool = True) -> dict:
                     elif 'stem' in v_lower or 'стебель' in v_lower:
                         stem_id = k
                 
+                # Если нашли и тот и другой класс, и они еще не заменены правильно
                 if leaf_id is not None and stem_id is not None:
-                    # Подменяем словарь названий классов (для отображения)
-                    new_names = names_dict.copy()
-                    new_names[leaf_id], new_names[stem_id] = names_dict[stem_id], names_dict[leaf_id]
-                    seg_results[0].names = new_names
-                    
-                    # Подменяем сами предсказания (классы в тензорах)
-                    if seg_results[0].boxes is not None:
-                        cls_tensor = seg_results[0].boxes.cls
+                    # Принудительно меняем их местами в самой модели до инференса
+                    if 'leaf' in str(names_dict[leaf_id]).lower():
+                        arugula_seg_model.names[leaf_id] = 'stebel' # Меняем название под капотом
+                        arugula_seg_model.names[stem_id] = 'listok'
                         
-                        # Создаем копию для безопасной замены
-                        new_cls = cls_tensor.clone()
-                        
-                        # Заменяем leaf_id на stem_id
-                        new_cls[cls_tensor == leaf_id] = stem_id
-                        # Заменяем stem_id на leaf_id
-                        new_cls[cls_tensor == stem_id] = leaf_id
-                        
-                        seg_results[0].boxes.cls = new_cls
-                        
-                        # Важно для plot(): YOLO кэширует оригинальные названия при отрисовке, 
-                        # иногда обращаясь к исходным данным модели.
-                        # Надежнее всего поменять значения ключей в словаре names:
-                        seg_results[0].names[leaf_id] = names_dict[stem_id]
-                        seg_results[0].names[stem_id] = names_dict[leaf_id]
+            # Выполняем инференс с уже измененными (или нет) названиями классов в модели
+            seg_results = arugula_seg_model(image, verbose=False)
+            
+            # Подменяем сами предсказания (классы в тензорах)
+            if seg_results and len(seg_results) > 0 and seg_results[0].boxes is not None:
+                cls_tensor = seg_results[0].boxes.cls
+                new_cls = cls_tensor.clone()
+                
+                # Теперь мы точно знаем, что leaf_id и stem_id существуют
+                if 'leaf_id' in locals() and 'stem_id' in locals() and leaf_id is not None and stem_id is not None:
+                    # Инвертируем ID предсказаний, чтобы поменялись маски и расчеты
+                    new_cls[cls_tensor == leaf_id] = stem_id
+                    new_cls[cls_tensor == stem_id] = leaf_id
+                    seg_results[0].boxes.cls = new_cls
         else:
             plant_name_ru = "Пшеница 🌾"
             seg_results = wheat_seg_model(image, verbose=False)
