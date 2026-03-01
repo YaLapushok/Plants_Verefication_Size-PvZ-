@@ -80,10 +80,25 @@ def process_image(image_bytes: bytes, show_boxes: bool = True) -> dict:
                         stem_id = k
                 
                 if leaf_id is not None and stem_id is not None:
-                    # Подменяем словарь названий классов
+                    # Подменяем словарь названий классов (для отображения)
                     new_names = names_dict.copy()
                     new_names[leaf_id], new_names[stem_id] = names_dict[stem_id], names_dict[leaf_id]
                     seg_results[0].names = new_names
+                    
+                    # Подменяем сами предсказания (классы в тензорах)
+                    if seg_results[0].boxes is not None:
+                        import torch
+                        cls_tensor = seg_results[0].boxes.cls
+                        
+                        # Создаем копию для безопасной замены
+                        new_cls = cls_tensor.clone()
+                        
+                        # Заменяем leaf_id на stem_id
+                        new_cls[cls_tensor == leaf_id] = stem_id
+                        # Заменяем stem_id на leaf_id
+                        new_cls[cls_tensor == stem_id] = leaf_id
+                        
+                        seg_results[0].boxes.cls = new_cls
         else:
             plant_name_ru = "Пшеница 🌾"
             seg_results = wheat_seg_model(image, verbose=False)
