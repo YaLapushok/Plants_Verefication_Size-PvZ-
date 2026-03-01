@@ -66,6 +66,24 @@ def process_image(image_bytes: bytes, show_boxes: bool = True) -> dict:
         if is_arugula:
             plant_name_ru = "Рукола 🌱"
             seg_results = arugula_seg_model(image, verbose=False)
+            
+            # Костыль: меняем классы 'stem' и 'leaf' местами только для руколы
+            # Так как модель ошибочно помечает стебель классом листка и наоборот
+            if seg_results and len(seg_results) > 0 and getattr(seg_results[0], 'names', None):
+                names_dict = seg_results[0].names
+                leaf_id, stem_id = None, None
+                for k, v in names_dict.items():
+                    v_lower = str(v).lower()
+                    if 'leaf' in v_lower or 'лист' in v_lower:
+                        leaf_id = k
+                    elif 'stem' in v_lower or 'стебель' in v_lower:
+                        stem_id = k
+                
+                if leaf_id is not None and stem_id is not None:
+                    # Подменяем словарь названий классов
+                    new_names = names_dict.copy()
+                    new_names[leaf_id], new_names[stem_id] = names_dict[stem_id], names_dict[leaf_id]
+                    seg_results[0].names = new_names
         else:
             plant_name_ru = "Пшеница 🌾"
             seg_results = wheat_seg_model(image, verbose=False)
