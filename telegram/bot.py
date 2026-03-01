@@ -10,12 +10,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, BufferedInputFile, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.filters import CommandStart
+from aiogram.client.session.aiohttp import AiohttpSession
 from config import BOT_TOKEN
 from core.ml import process_image
 
 logging.basicConfig(level=logging.INFO)
 
-bot = Bot(token=BOT_TOKEN)
+# Увеличиваем таймаут для работы без VPN при медленном соединении к серверам Telegram
+session = AiohttpSession(timeout=60)
+bot = Bot(token=BOT_TOKEN, session=session)
 dp = Dispatcher()
 
 user_settings = {}
