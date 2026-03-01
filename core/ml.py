@@ -87,7 +87,6 @@ def process_image(image_bytes: bytes, show_boxes: bool = True) -> dict:
                     
                     # Подменяем сами предсказания (классы в тензорах)
                     if seg_results[0].boxes is not None:
-                        import torch
                         cls_tensor = seg_results[0].boxes.cls
                         
                         # Создаем копию для безопасной замены
@@ -99,6 +98,12 @@ def process_image(image_bytes: bytes, show_boxes: bool = True) -> dict:
                         new_cls[cls_tensor == stem_id] = leaf_id
                         
                         seg_results[0].boxes.cls = new_cls
+                        
+                        # Важно для plot(): YOLO кэширует оригинальные названия при отрисовке, 
+                        # иногда обращаясь к исходным данным модели.
+                        # Надежнее всего поменять значения ключей в словаре names:
+                        seg_results[0].names[leaf_id] = names_dict[stem_id]
+                        seg_results[0].names[stem_id] = names_dict[leaf_id]
         else:
             plant_name_ru = "Пшеница 🌾"
             seg_results = wheat_seg_model(image, verbose=False)
