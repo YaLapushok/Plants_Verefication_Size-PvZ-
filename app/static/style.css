@@ -621,3 +621,126 @@ header p {
         transform: translate3d(4px, 0, 0);
     }
 }
+
+/* ==================== FILTER BUTTONS ==================== */
+.filter-controls {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.filter-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: linear-gradient(135deg, #00c865 0%, #00a845 100%);
+    color: #020b07;
+    border: 2px solid rgba(0, 230, 118, 0.3);
+    border-radius: 50px;
+    padding: 0.75rem 1.5rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 15px rgba(0, 230, 118, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.filter-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s ease;
+}
+
+.filter-btn:hover::before {
+    left: 100%;
+}
+
+.filter-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 6px 20px rgba(0, 230, 118, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    border-color: rgba(0, 230, 118, 0.6);
+}
+
+.filter-btn.active {
+    background: linear-gradient(135deg, #00c865 0%, #00a845 100%);
+    border-color: rgba(0, 230, 118, 0.5);
+    box-shadow: 0 0 25px rgba(0, 230, 118, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.filter-btn:not(.active) {
+    background: rgba(0, 230, 118, 0.15);
+    border-color: rgba(0, 230, 118, 0.3);
+    color: #a7f3d0;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.filter-btn:not(.active):hover {
+    background: rgba(0, 230, 118, 0.25);
+    border-color: rgba(0, 230, 118, 0.5);
+    color: #f0fdf4;
+}
+
+.filter-btn-icon {
+    font-size: 1.1rem;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+
+.filter-btn-label {
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.filter-btn-count {
+    background: rgba(2, 11, 7, 0.25);
+    color: #020b07;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: 1px solid rgba(2, 11, 7, 0.15);
+    backdrop-filter: blur(4px);
+    margin-left: 0.25rem;
+}
+
+.filter-btn:not(.active) .filter-btn-count {
+    background: rgba(2, 11, 7, 0.4);
+    color: #a7f3d0;
+    border-color: rgba(2, 11, 7, 0.2);
+}
+
+/* Адаптив для мелких экранов */
+@media (max-width: 600px) {
+    .filter-btn {
+        width: calc(50% - 0.5rem);
+        justify-content: center;
+        padding: 0.9rem 1.2rem;
+    }
+
+    .filter-buttons {
+        gap: 0.75rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .filter-btn {
+        width: 100%;
+    }
+}
