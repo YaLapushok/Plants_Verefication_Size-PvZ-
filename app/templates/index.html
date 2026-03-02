@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Анализ Растений AI</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
-
 <body>
     <div class="glass-bg"></div>
     <div class="container">
@@ -35,6 +33,7 @@
             <!-- INPUT STATE -->
             <form action="/upload" method="post" enctype="multipart/form-data" class="upload-area premium-card"
                 id="upload-form">
+
                 <div class="drop-zone" id="drop-zone">
                     <div class="upload-icon-wrapper">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" class="upload-icon">
@@ -49,6 +48,7 @@
                     <input type="file" name="file" id="file-input" class="drop-zone__input" accept="image/*" required>
                 </div>
 
+                <!-- Settings: Show bounding boxes ONLY -->
                 <div class="settings-bar">
                     <label class="custom-checkbox">
                         <input type="checkbox" name="show_boxes" checked>
@@ -56,7 +56,7 @@
                     </label>
                 </div>
 
-                <!-- LOADING OVERLAY -->
+                <!-- Loading Overlay -->
                 <div class="loading-overlay" id="loading-overlay">
                     <div class="scanner-box">
                         <div class="scanner-line"></div>
@@ -64,10 +64,12 @@
                     <p>Анализ структуры растения...</p>
                 </div>
             </form>
-            {% else %}
 
+            {% else %}
             <!-- OUTPUT STATE -->
             <div class="results-container">
+
+                <!-- Hero Card with Plant Info -->
                 <div class="premium-card result-hero">
                     <div class="plant-class">
                         <h2>{{ class_name }}</h2>
@@ -90,17 +92,17 @@
                     </div>
                 </div>
 
+                <!-- Two-column Layout: Image + Chart -->
                 <div class="cards-layout">
-                    <!-- Original Annotated Image -->
+                    <!-- Annotated Image -->
                     <div class="premium-card visual-card">
                         <h3>Сегментация</h3>
                         <div class="image-wrapper">
-                            <img src="data:image/jpeg;base64,{{ annotated_b64 }}" alt="Сегментация"
-                                class="result-image">
+                            <img src="data:image/jpeg;base64,{{ annotated_b64 }}" alt="Сегментация" class="result-image" id="resultImage">
                         </div>
                     </div>
 
-                    <!-- Statistics Chart -->
+                    <!-- Pie Chart (if available) -->
                     {% if chart_b64 %}
                     <div class="premium-card visual-card">
                         <h3>Распределение площадей</h3>
@@ -111,39 +113,57 @@
                     {% endif %}
                 </div>
 
-                <!-- Metrics Data Table -->
+                <!-- Metrics Grid with Dynamic Filter Buttons -->
                 <div class="premium-card metrics-card">
-                    <h3
-                        style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; margin-bottom: 0.5rem; text-align: center;">
+                    <h3 style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; margin-bottom: 1.5rem; text-align: center;">
                         Морфология по частям</h3>
-                    <div class="metrics-grid">
+
+                    <!-- Dynamic Filter Controls -->
+                    <div class="filter-controls">
+                        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.95rem;">
+                            🔽 Нажмите на класс, чтобы показать/скрыть его на изображении:</p>
+                        <div class="filter-buttons" id="filterButtons">
+                            {% for c_name in class_metrics.keys() %}
+                            <button type="button"
+                                    class="filter-btn active"
+                                    data-class="{{ c_name }}"
+                                    onclick="toggleClass('{{ c_name }}')">
+                                <span class="filter-btn-icon">👁</span>
+                                <span class="filter-btn-label">{{ c_name.capitalize() }}</span>
+                                <span class="filter-btn-count">{{ class_metrics[c_name].count }} шт.</span>
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="metrics-grid" id="metricsGrid">
                         {% for c_name, data in class_metrics.items() %}
-                        <div class="metric-item">
+                        <div class="metric-item" id="metric-{{ c_name }}" data-class="{{ c_name }}">
                             <h4 class="metric-title">
                                 {{ c_name.capitalize() }}
                                 <span class="count-tag">{{ data.count }} шт.</span>
                             </h4>
                             <div class="metric-stats">
-                                <p>Площадь <span class="stat-value">{% if data.area %}{{ "%.2f"|format(data.area) }}{%
-                                        else %}0.00{% endif %} мм²</span></p>
-                                <p>Длина <span class="stat-value">{% if data.length %}{{ "%.2f"|format(data.length) }}{%
-                                        else %}0.00{% endif %} мм</span></p>
+                                <p>Площадь <span class="stat-value">{% if data.area %}{{ "%.2f"|format(data.area) }}{% else %}0.00{% endif %} мм²</span></p>
+                                <p>Длина <span class="stat-value">{% if data.length %}{{ "%.2f"|format(data.length) }}{% else %}0.00{% endif %} мм</span></p>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
                 </div>
 
+                <!-- Actions -->
                 <div class="actions">
-                    <a href="/" class="btn-primary">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 20 0 0 1-2 2H5a2 20 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        Загрузить новое фото
-                    </a>
+                    <form action="/" method="get" style="display: inline;">
+                        <button type="submit" class="btn-primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            Загрузить новое фото
+                        </button>
+                    </form>
                 </div>
             </div>
             {% endif %}
@@ -151,7 +171,7 @@
     </div>
 
     <script>
-        // Drag and Drop Logic + submit spinner
+        // ==================== DRAG & DROP + SUBMIT LOGIC ====================
         const dropZoneElement = document.getElementById("drop-zone");
         const inputElement = document.getElementById("file-input");
         const formElement = document.getElementById("upload-form");
@@ -159,7 +179,9 @@
 
         if (dropZoneElement) {
             dropZoneElement.addEventListener("click", e => {
-                inputElement.click();
+                if (e.target === dropZoneElement || e.target.closest('.upload-icon-wrapper') || e.target.closest('.drop-zone__prompt')) {
+                    inputElement.click();
+                }
             });
 
             inputElement.addEventListener("change", e => {
@@ -193,18 +215,128 @@
 
         function updateThumbnail(dropZoneElement, file) {
             let prompt = dropZoneElement.querySelector(".drop-zone__prompt");
-            if (prompt) prompt.innerHTML = `<span style="color:var(--primary-light)">Выбран файл:</span><br>${file.name}`;
+            if (prompt) {
+                prompt.innerHTML = `<span style="color:var(--primary-light)">Выбран файл:</span><br><strong>${file.name}</strong>`;
+            }
         }
 
         function submitForm() {
-            loadingOverlay.style.display = 'flex';
-            // Slight delay to allow display:flex to apply before opacity transition
-            setTimeout(() => {
-                loadingOverlay.classList.add('active');
-            }, 10);
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+                setTimeout(() => {
+                    loadingOverlay.classList.add('active');
+                }, 10);
+            }
             formElement.submit();
+        }
+
+        // ==================== DYNAMIC FILTERING (after upload) ====================
+        let activeClasses = new Set();
+
+        // Инициализация при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.filter-btn');
+            buttons.forEach(btn => {
+                if (btn.classList.contains('active')) {
+                    activeClasses.add(btn.dataset.class);
+                }
+            });
+        });
+
+        // Переключение класса
+// Переключение класса
+function toggleClass(className) {
+    const btn = document.querySelector(`.filter-btn[data-class="${className}"]`);
+    const metricItem = document.querySelector(`#metric-${className}`);
+
+    // 🚫 ЗАПРЕТ: нельзя отключить последний активный класс
+    if (activeClasses.has(className) && activeClasses.size === 1) {
+        // Визуальный фидбек: лёгкая анимация "отскока"
+        btn.style.animation = 'none';
+        btn.offsetHeight; // trigger reflow для перезапуска анимации
+        btn.style.animation = 'shake 0.3s';
+        setTimeout(() => {
+            btn.style.animation = '';
+        }, 300);
+        return; // Прерываем функцию — ничего не меняем
+    }
+
+    if (activeClasses.has(className)) {
+        activeClasses.delete(className);
+        btn.classList.remove('active');
+        if (metricItem) {
+            metricItem.style.opacity = '0.3';
+            metricItem.style.filter = 'grayscale(100%)';
+        }
+    } else {
+        activeClasses.add(className);
+        btn.classList.add('active');
+        if (metricItem) {
+            metricItem.style.opacity = '1';
+            metricItem.style.filter = 'none';
+        }
+    }
+    updateFilteredImage();
+}
+
+        // AJAX запрос на сервер
+        async function updateFilteredImage() {
+            try {
+                const showBoxesCheckbox = document.querySelector('input[name="show_boxes"]');
+                const showBoxes = showBoxesCheckbox ? showBoxesCheckbox.checked : true;
+
+                const response = await fetch('/api/filter', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        selected_classes: Array.from(activeClasses),
+                        show_boxes: showBoxes
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.annotated_b64) {
+                    const img = document.getElementById('resultImage');
+                    if (img) {
+                        img.style.opacity = '0.5';
+                        img.style.transition = 'opacity 0.2s ease';
+                        setTimeout(() => {
+                            img.src = `data:image/jpeg;base64,${data.annotated_b64}`;
+                            img.onload = () => { img.style.opacity = '1'; };
+                        }, 200);
+                    }
+                    if (data.total_area !== undefined) {
+                        const areaBadge = document.querySelector('.badge-area');
+                        if (areaBadge) {
+                            areaBadge.innerHTML = `
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                </svg>
+                                Площадь: ${parseFloat(data.total_area).toFixed(2)} мм²
+                            `;
+                        }
+                    }
+                    if (data.total_length !== undefined) {
+                        const lengthBadge = document.querySelector('.badge-length');
+                        if (lengthBadge) {
+                            lengthBadge.innerHTML = `
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
+                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                                </svg>
+                                Длина: ${parseFloat(data.total_length).toFixed(2)} мм
+                            `;
+                        }
+                    }
+                } else if (data.error) {
+                    console.error('Server error:', data.error);
+                }
+            } catch (error) {
+                console.error('Error updating filtered image:', error);
+            }
         }
     </script>
 </body>
-
 </html>
