@@ -16,7 +16,7 @@ import math
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
-from core.ml import process_image
+from core.ml import process_image, get_ru_name, CLASS_NAME_RU
 
 app = FastAPI(title="Plant Verification App")
 
@@ -89,12 +89,16 @@ async def handle_upload(
     if result.get('chart_bytes'):
         chart_b64 = base64.b64encode(result['chart_bytes']).decode('utf-8')
 
+    # Подготавливаем русские названия для шаблона
+    class_names_ru = {k: get_ru_name(k) for k in result.get('class_metrics', {}).keys()}
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         "class_name": result['class_name'],
         "total_area": f"{result['total_area']:.2f}",
         "total_length": f"{result['total_length']:.2f}",
         "class_metrics": result['class_metrics'],
+        "class_names_ru": class_names_ru,
         "annotated_b64": annotated_b64,
         "chart_b64": chart_b64,
         "success": True,
