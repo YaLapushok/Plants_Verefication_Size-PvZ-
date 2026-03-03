@@ -48,7 +48,6 @@
                     <input type="file" name="file" id="file-input" class="drop-zone__input" accept="image/*" required>
                 </div>
 
-                <!-- Settings: Show bounding boxes ONLY -->
                 <div class="settings-bar">
                     <label class="custom-checkbox">
                         <input type="checkbox" name="show_boxes" checked>
@@ -56,7 +55,6 @@
                     </label>
                 </div>
 
-                <!-- Loading Overlay -->
                 <div class="loading-overlay" id="loading-overlay">
                     <div class="scanner-box">
                         <div class="scanner-line"></div>
@@ -98,6 +96,7 @@
                     <div class="premium-card visual-card">
                         <h3>Сегментация</h3>
                         <div class="image-wrapper">
+                            <!-- ИСПРАВЛЕНО: добавлено data: -->
                             <img src="data:image/jpeg;base64,{{ annotated_b64 }}" alt="Сегментация" class="result-image" id="resultImage">
                         </div>
                     </div>
@@ -107,6 +106,7 @@
                     <div class="premium-card visual-card">
                         <h3>Распределение площадей</h3>
                         <div class="image-wrapper">
+                            <!-- ИСПРАВЛЕНО: добавлено data: -->
                             <img src="data:image/jpeg;base64,{{ chart_b64 }}" alt="Статистика" class="result-chart">
                         </div>
                     </div>
@@ -121,7 +121,7 @@
                     <!-- Dynamic Filter Controls -->
                     <div class="filter-controls">
                         <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.95rem;">
-                            🔽 Нажмите на класс, чтобы показать/скрыть его на изображении:</p>
+                            Нажмите на класс, чтобы показать/скрыть его на изображении:</p>
                         <div class="filter-buttons" id="filterButtons">
                             {% for c_name in class_metrics.keys() %}
                             <button type="button"
@@ -129,7 +129,7 @@
                                     data-class="{{ c_name }}"
                                     onclick="toggleClass('{{ c_name }}')">
                                 <span class="filter-btn-icon">👁</span>
-                                <span class="filter-btn-label">{{ c_name.capitalize() }}</span>
+                                <span class="filter-btn-label">{{ class_names_ru.get(c_name, c_name.capitalize()) }}</span>
                                 <span class="filter-btn-count">{{ class_metrics[c_name].count }} шт.</span>
                             </button>
                             {% endfor %}
@@ -140,7 +140,7 @@
                         {% for c_name, data in class_metrics.items() %}
                         <div class="metric-item" id="metric-{{ c_name }}" data-class="{{ c_name }}">
                             <h4 class="metric-title">
-                                {{ c_name.capitalize() }}
+                                {{ class_names_ru.get(c_name, c_name.capitalize()) }}
                                 <span class="count-tag">{{ data.count }} шт.</span>
                             </h4>
                             <div class="metric-stats">
@@ -244,40 +244,38 @@
         });
 
         // Переключение класса
-// Переключение класса
-function toggleClass(className) {
-    const btn = document.querySelector(`.filter-btn[data-class="${className}"]`);
-    const metricItem = document.querySelector(`#metric-${className}`);
+        function toggleClass(className) {
+            const btn = document.querySelector(`.filter-btn[data-class="${className}"]`);
+            const metricItem = document.querySelector(`#metric-${className}`);
 
-    // 🚫 ЗАПРЕТ: нельзя отключить последний активный класс
-    if (activeClasses.has(className) && activeClasses.size === 1) {
-        // Визуальный фидбек: лёгкая анимация "отскока"
-        btn.style.animation = 'none';
-        btn.offsetHeight; // trigger reflow для перезапуска анимации
-        btn.style.animation = 'shake 0.3s';
-        setTimeout(() => {
-            btn.style.animation = '';
-        }, 300);
-        return; // Прерываем функцию — ничего не меняем
-    }
+            // 🚫 ЗАПРЕТ: нельзя отключить последний активный класс
+            if (activeClasses.has(className) && activeClasses.size === 1) {
+                btn.style.animation = 'none';
+                btn.offsetHeight;
+                btn.style.animation = 'shake 0.3s';
+                setTimeout(() => {
+                    btn.style.animation = '';
+                }, 300);
+                return;
+            }
 
-    if (activeClasses.has(className)) {
-        activeClasses.delete(className);
-        btn.classList.remove('active');
-        if (metricItem) {
-            metricItem.style.opacity = '0.3';
-            metricItem.style.filter = 'grayscale(100%)';
+            if (activeClasses.has(className)) {
+                activeClasses.delete(className);
+                btn.classList.remove('active');
+                if (metricItem) {
+                    metricItem.style.opacity = '0.3';
+                    metricItem.style.filter = 'grayscale(100%)';
+                }
+            } else {
+                activeClasses.add(className);
+                btn.classList.add('active');
+                if (metricItem) {
+                    metricItem.style.opacity = '1';
+                    metricItem.style.filter = 'none';
+                }
+            }
+            updateFilteredImage();
         }
-    } else {
-        activeClasses.add(className);
-        btn.classList.add('active');
-        if (metricItem) {
-            metricItem.style.opacity = '1';
-            metricItem.style.filter = 'none';
-        }
-    }
-    updateFilteredImage();
-}
 
         // AJAX запрос на сервер
         async function updateFilteredImage() {
@@ -302,6 +300,7 @@ function toggleClass(className) {
                         img.style.opacity = '0.5';
                         img.style.transition = 'opacity 0.2s ease';
                         setTimeout(() => {
+                            // ИСПРАВЛЕНО: добавлено data:
                             img.src = `data:image/jpeg;base64,${data.annotated_b64}`;
                             img.onload = () => { img.style.opacity = '1'; };
                         }, 200);
