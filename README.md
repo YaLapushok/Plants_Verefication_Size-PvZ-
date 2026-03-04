@@ -24,13 +24,13 @@ Plants_Verification_Size-PvZ-
 │   │   └── 📄 style.css             # Стили веб-интерфейса
 │   ├── 📂 templates/                # HTML-шаблоны Jinja2
 │   │   └── 📄 index.html            # Главная страница
-│   └── 📄 main.py                   # Точка входа API
-├── 📂 core/                         # Ядро ML-логики
+│   └── 📄 main.py                   # FastAPI приложение
+├── 📂 core/                         # ML-логика
 │   └── 📄 ml.py                     # Загрузка модели, инференс
 ├── 📂 telegram/                     # Telegram-бот
 │   └── 📄 bot.py                    # Инициализация бота
 ├── 📂 models/                       # Веса моделей (.pt)
-│   ├── 📄 README.md                 # Описание метрик
+│   ├── 📄 README.md                 # Метрики растений
 │   ├── 📄 arugula.pt                # Модель руколлы
 │   ├── 📄 classificator.pt          # Классификатор растений
 │   ├── 📄 wheat.pt                  # Модель пшеницы
