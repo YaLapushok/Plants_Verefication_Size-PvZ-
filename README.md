@@ -58,7 +58,7 @@ Plants_Verification_Size-PvZ-
 | Bot        | Aiogram 3.x                                 |
 | Frontend   | Jinja2, HTML/CSS/JS (Vanilla)               |
 | Data       | Pandas, NumPy, Matplotlib                   |
-| DevOps     | Git, GitHub                                 |
+| DevOps     | Git                                 |
 
 Проект включает в себя современные технологии машинного обучения и веб-разработки:
 
@@ -74,7 +74,7 @@ Plants_Verification_Size-PvZ-
   - `Matplotlib` - для генерации графиков статистики распределения биомассы.
 - **Telegram бот:**
   - `Aiogram (3.x)` - асинхронный фреймворк для взаимодействия с API Telegram.
-  - `GitHub` — хостинг репозитория и CI/CD
+  - `GitHub` - хостинг репозитория и CI/CD
 
 ---
 
