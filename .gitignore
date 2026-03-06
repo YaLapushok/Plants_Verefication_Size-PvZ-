@@ -1,2 +1,7 @@
 venv/
 .env
+*.pth
+*.pt
+data/*.db
+__pycache__/
+**/__pycache__/

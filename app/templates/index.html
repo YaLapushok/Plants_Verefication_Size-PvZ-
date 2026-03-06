@@ -1,246 +1,485 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Анализ Растений AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .model-description {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .batch-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Image modal */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal-img {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 2rem;
+            color: #fff;
+            font-size: 2rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+
+        /* Fix image black frames */
+        .image-wrapper {
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+
+        .result-image,
+        .result-chart {
+            object-fit: cover !important;
+            cursor: zoom-in;
+        }
+
+        /* APP LAYOUT - Roboflow Style */
+        .app-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        header {
+            text-align: left;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 0.2rem;
+        }
+
+        header p {
+            font-size: 1rem;
+        }
+
+        .logo-container {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 0;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+        }
+
+        .app-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1024px) {
+            .app-layout {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+
+            .app-sidebar {
+                width: 280px;
+                flex-shrink: 0;
+                position: sticky;
+                top: 2rem;
+                height: calc(100vh - 4rem);
+                overflow-y: auto;
+                padding-right: 0.5rem;
+            }
+
+            /* Hide scrollbar for sidebar */
+            .app-sidebar::-webkit-scrollbar {
+                width: 4px;
+            }
+
+            .app-sidebar::-webkit-scrollbar-track {
+                background: transparent;
+            }
+
+            .app-sidebar::-webkit-scrollbar-thumb {
+                background: var(--border-active);
+                border-radius: 4px;
+            }
+
+            .app-content {
+                flex-grow: 1;
+                min-width: 0;
+            }
+        }
+
+        /* Grid for multiple results */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+
+        @media (min-width: 1400px) {
+            .results-grid.multi {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Compact cards for grid mode */
+        .results-container {
+            margin-bottom: 0;
+        }
+
+        .cards-layout {
+            grid-template-columns: 1fr;
+            /* Stack images and charts vertically inside the card */
+            gap: 1.5rem;
+        }
+
+        .charts-column {
+            display: flex;
+            flex-direction: row;
+            gap: 1rem;
+        }
+
+        .charts-column>* {
+            flex: 1;
+        }
+
+        .upload-area {
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .drop-zone {
+            height: 140px;
+            margin-bottom: 1rem;
+        }
+    </style>
 </head>
+
 <body>
     <div class="glass-bg"></div>
-    <div class="container">
+    <div class="app-container">
 
         <header>
-            <div class="logo-container">
-                <svg viewBox="0 0 24 24" fill="none" class="logo-icon" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22c0-4.418.001-8.204 0-12" />
-                    <path d="M12 10c0-3 2-6 6-6-3 0-6 2-6 6z" fill="currentColor" />
-                    <path d="M12 14c0-3-2-6-6-6 3 0 6 2 6 6z" fill="currentColor" />
-                    <path d="M12 18c0-2.5 1.5-4 4-4-2 0-4 1.5-4 4z" fill="currentColor" />
-                </svg>
-            </div>
-            <h1>Анализ Растений AI</h1>
-            <p>Продвинутая сегментация и замер биометрических показателей пшеницы и руколы на базе нейросетей</p>
-        </header>
-
-        {% if error_message %}
-        <div class="error-banner">{{ error_message }}</div>
-        {% endif %}
-
-        <main>
-            {% if not success %}
-            <!-- INPUT STATE -->
-            <form action="/upload" method="post" enctype="multipart/form-data" class="upload-area premium-card"
-                id="upload-form">
-
-                <div class="drop-zone" id="drop-zone">
-                    <div class="upload-icon-wrapper">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" class="upload-icon">
-                            <path d="M12 4v12m0-12l4 4m-4-4l-4 4m10 8H6" stroke="currentColor" stroke-width="2.5"
-                                stroke-linecap="round" stroke-linejoin="round" />
-                        </svg>
-                    </div>
-                    <span class="drop-zone__prompt">
-                        Перетащите изображение растения сюда
-                        <span class="prompt-subtext">или кликните для выбора файла с устройства</span>
-                    </span>
-                    <input type="file" name="file" id="file-input" class="drop-zone__input" accept="image/*" required>
+            <div class="header-left">
+                <div class="logo-container">
+                    <svg viewBox="0 0 24 24" fill="none" class="logo-icon" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22c0-4.418.001-8.204 0-12" />
+                        <path d="M12 10c0-3 2-6 6-6-3 0-6 2-6 6z" fill="currentColor" />
+                        <path d="M12 14c0-3-2-6-6-6 3 0 6 2 6 6z" fill="currentColor" />
+                        <path d="M12 18c0-2.5 1.5-4 4-4-2 0-4 1.5-4 4z" fill="currentColor" />
+                    </svg>
                 </div>
-
-                <div class="settings-bar">
-                    <label class="custom-checkbox">
-                        <input type="checkbox" name="show_boxes" checked>
-                        <span>Отображать рамки (Bounding Boxes)</span>
-                    </label>
-                </div>
-
-                <div class="loading-overlay" id="loading-overlay">
-                    <div class="scanner-box">
-                        <div class="scanner-line"></div>
-                    </div>
-                    <p>Анализ структуры растения...</p>
-                </div>
-            </form>
-
-            {% else %}
-            <!-- OUTPUT STATE -->
-            <div class="results-container">
-
-                <!-- Hero Card with Plant Info -->
-                <div class="premium-card result-hero">
-                    <div class="plant-class">
-                        <h2>{{ class_name }}</h2>
-                        <div class="badges">
-                            <span class="badge badge-length">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
-                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                                </svg>
-                                Длина: {{ total_length }} мм
-                            </span>
-                            <span class="badge badge-area">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                </svg>
-                                Площадь: {{ total_area }} мм²
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Two-column Layout: Image + Chart -->
-                <div class="cards-layout">
-                    <!-- Annotated Image -->
-                    <div class="premium-card visual-card">
-                        <h3>Сегментация</h3>
-                        <div class="image-wrapper">
-                            <img src="data:image/jpeg;base64,{{ annotated_b64 }}" alt="Сегментация" class="result-image" id="resultImage">
-                            <div class="image-zoom-hint">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="11" cy="11" r="8"></circle>
-                                    <path d="M21 21l-4.35-4.35"></path>
-                                    <path d="M11 8v6M8 11h6"></path>
-                                </svg>
-                                <span>Нажмите для увеличения</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Pie Chart (if available) -->
-                    {% if chart_b64 %}
-                    <div class="premium-card visual-card">
-                        <h3>Распределение площадей</h3>
-                        <div class="image-wrapper">
-                            <img src="data:image/jpeg;base64,{{ chart_b64 }}" alt="Статистика" class="result-chart">
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- Metrics Grid with Dynamic Filter Buttons -->
-                <div class="premium-card metrics-card">
-                    <h3 style="font-family: 'Outfit', sans-serif; font-size: 1.6rem; margin-bottom: 1.5rem; text-align: center;">
-                        Морфология по частям</h3>
-
-                    <!-- Dynamic Filter Controls -->
-                    <div class="filter-controls">
-                        <p style="color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.95rem;">
-                             Нажмите на класс, чтобы показать/скрыть его на изображении:</p>
-                        <div class="filter-buttons" id="filterButtons">
-                            {% for c_name in class_metrics.keys() %}
-                            <button type="button"
-                                    class="filter-btn active"
-                                    data-class="{{ c_name }}"
-                                    onclick="toggleClass('{{ c_name }}')">
-                                <span class="filter-btn-icon">👁</span>
-                                <span class="filter-btn-label">{{ class_names_ru.get(c_name, c_name.capitalize()) }}</span>
-                                <span class="filter-btn-count">{{ class_metrics[c_name].count }} шт.</span>
-                            </button>
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <div class="metrics-grid" id="metricsGrid">
-                        {% for c_name, data in class_metrics.items() %}
-                        <div class="metric-item" id="metric-{{ c_name }}" data-class="{{ c_name }}">
-                            <h4 class="metric-title">
-                                {{ class_names_ru.get(c_name, c_name.capitalize()) }}
-                                <span class="count-tag">{{ data.count }} шт.</span>
-                            </h4>
-                            <div class="metric-stats">
-                                <p>Площадь <span class="stat-value">{% if data.area %}{{ "%.2f"|format(data.area) }}{% else %}0.00{% endif %} мм²</span></p>
-                                <p>Длина <span class="stat-value">{% if data.length %}{{ "%.2f"|format(data.length) }}{% else %}0.00{% endif %} мм</span></p>
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-
-                <!-- Actions -->
-                <div class="actions">
-                    <form action="/" method="get" style="display: inline;">
-                        <button type="submit" class="btn-primary">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            Загрузить новое фото
-                        </button>
-                    </form>
-                </div>
-            </div>
-            {% endif %}
-        </main>
-    </div>
-
-<!-- ==================== LIGHTBOX MODAL ==================== -->
-<div class="lightbox-modal" id="lightboxModal">
-    <div class="lightbox-overlay" onclick="closeLightbox()"></div>
-    <div class="lightbox-content">
-        <button class="lightbox-close" onclick="closeLightbox()" title="Закрыть (Esc)">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-        </button>
-
-        <!-- Zoom Controls -->
-        <div class="zoom-controls">
-            <button class="zoom-btn" onclick="zoomOut()" title="Отдалить (−)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    <line x1="8" y1="11" x2="14" y2="11"></line>
-                </svg>
-            </button>
-            <span class="zoom-level" id="zoomLevelDisplay">100%</span>
-            <button class="zoom-btn" onclick="zoomIn()" title="Приблизить (+)">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"></circle>  ✅
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    <line x1="11" y1="8" x2="11" y2="14"></line>
-                    <line x1="8" y1="11" x2="14" y2="11"></line>
-                </svg>
-            </button>
-            <button class="zoom-btn zoom-reset" onclick="resetZoom()" title="Сбросить зум">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"></path>
-                    <path d="M3 3v9h9"></path>
-                </svg>
-            </button>
-        </div>
-
-        <div class="lightbox-body">
-            <div class="lightbox-image-wrapper" id="lightboxImageWrapper">
-                <img src="" alt="Увеличенная сегментация" class="lightbox-image" id="lightboxImage">
-            </div>
-            <div class="lightbox-sidebar">
-                <h3 class="lightbox-title">Фильтрация классов</h3>
-                <p class="lightbox-subtitle">Управляйте видимостью частей растения</p>
-                <div class="lightbox-filters" id="lightboxFilters">
-                    <!-- Кнопки копируются из основного блока через JS -->
-                </div>
-                <div class="lightbox-info">
-                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem;">
-                        <strong>Колесико</strong> - зум |
-                        <strong>Drag</strong> - перемещение |
-                        <strong>Двойной клик</strong> - сброс
+                <div>
+                    <h1>Анализ Растений AI</h1>
+                    <p style="color: var(--text-secondary); margin: 0;">Сегментация и замер биометрических показателей
                     </p>
                 </div>
             </div>
-        </div>
+            <a href="/db" class="db-link-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                </svg>
+                База данных
+            </a>
+        </header>
+
+        <main class="app-layout">
+            <!-- SIDEBAR -->
+            <aside class="app-sidebar premium-card"
+                style="padding: 1rem; background: var(--glass-bg); display: flex; flex-direction: column; gap: 1rem;">
+                <form id="upload-form" class="upload-area" style="padding: 0; margin: 0;">
+                    <div class="drop-zone" id="drop-zone" style="height: 120px; margin-bottom: 1rem;">
+                        <div class="upload-icon-wrapper" style="width: 32px; height: 32px; margin-bottom: 0.3rem;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="upload-icon">
+                                <path d="M12 4v12m0-12l4 4m-4-4l-4 4m10 8H6" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                        </div>
+                        <span class="drop-zone__prompt" style="font-size: 0.85rem;">
+                            Перетащите файлы
+                            <span class="prompt-subtext" style="font-size: 0.75rem;">или кликните</span>
+                        </span>
+                        <input type="file" name="file" id="file-input" class="drop-zone__input" accept="image/*"
+                            multiple required>
+                    </div>
+
+                    <div class="settings-bar"
+                        style="flex-direction: column; align-items: stretch; gap: 1rem; margin-bottom: 0;">
+                        <!-- Model selector -->
+                        <div class="model-selector" style="width: 100%;">
+                            <span class="model-selector__label">Модель:</span>
+                            <div style="display:flex; flex-direction:column; gap:0.5rem; flex:1;">
+                                <label class="model-radio">
+                                    <input type="radio" name="seg_model" value="unet" checked>
+                                    <span class="model-radio__pill"
+                                        style="width: 100%; text-align: center;">U-Net</span>
+                                </label>
+                                <label class="model-radio">
+                                    <input type="radio" name="seg_model" value="yolo">
+                                    <span class="model-radio__pill" style="width: 100%; text-align: center;">YOLO</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <p class="model-description" style="font-size: 0.75rem; margin-top: 0.5rem; line-height: 1.2;">
+                            <strong>U-Net:</strong> Высокая точность.<br>
+                            <strong>YOLO:</strong> Быстрая, общие рамки.
+                        </p>
+
+                        <label class="custom-checkbox" style="justify-content: center; width: 100%;">
+                            <input type="checkbox" id="show-boxes-toggle" name="show_boxes" checked>
+                            <span>Отображать рамки (Bounding Boxes)</span>
+                        </label>
+                    </div>
+
+                    <!-- Loading Overlay -->
+                    <div class="loading-overlay" id="loading-overlay">
+                        <div class="scanner-box">
+                            <div class="scanner-line"></div>
+                        </div>
+                        <p id="loading-text" style="font-size: 0.9rem;">Анализ...</p>
+                    </div>
+                </form>
+
+                <!-- EXPORT ACTION -->
+                <div id="batch-actions" class="batch-controls"
+                    style="display: none; margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border-subtle);">
+                    <h4
+                        style="margin-bottom: 0.5rem; text-align: center; color: var(--text-secondary); font-size: 0.85rem;">
+                        Экспорт результатов</h4>
+                    <button onclick="exportAll()" class="btn-primary"
+                        style="width: 100%; justify-content: center; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.3); color: #a5b4fc; box-shadow: none; font-size: 0.9rem; padding: 0.6rem;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                        Скачать ZIP
+                    </button>
+                </div>
+            </aside>
+
+            <!-- MAIN CONTENT (RESULTS) -->
+            <section class="app-content">
+                <div id="results-gallery" class="results-grid">
+                    <!-- Placeholder when empty -->
+                    <div id="empty-state"
+                        style="text-align: center; color: var(--text-secondary); padding: 4rem; opacity: 0.5;">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+                            style="margin-bottom: 1rem;">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                        <h2>Нет данных</h2>
+                        <p>Загрузите изображения через панель слева для начала анализа.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
     </div>
-</div>
+
+    <!-- Image Modal -->
+    <div class="modal-backdrop" id="imgModal" onclick="closeModal(event)">
+        <button class="modal-close" onclick="document.getElementById('imgModal').classList.remove('open')">×</button>
+        <img class="modal-img" id="modalImg" src="" alt="Zoomed Image">
+    </div>
+
+    <!-- JS TEMPLATE FOR A RESULT BLOCK -->
+    <template id="result-template">
+        <div class="results-container premium-card" data-analysis-id="" style="display: flex; flex-direction: column;">
+            <!-- Hero Card -->
+            <div class="result-hero"
+                style="background: none; box-shadow: none; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; border-radius: 0;">
+                <div class="plant-class">
+                    <h2 class="class-name-disp"
+                        style="font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <!-- name -->
+                        <span class="model-badge"></span>
+                    </h2>
+                    <div class="badges" style="flex-wrap: wrap; padding: 0.3rem 0.8rem; gap: 0.8rem;">
+                        <span class="badge badge-length length-disp" style="font-size: 0.8rem;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
+                                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                            </svg>
+                        </span>
+                        <span class="badge badge-area area-disp" style="font-size: 0.8rem;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                style="padding: 0.5rem 1rem 1rem 1rem; flex-grow: 1; display: flex; flex-direction: column; gap: 1rem;">
+
+                <!-- Explicit 2-column internal layout: Left (Image) | Right (Scrollable Stats) -->
+                <div class="cards-layout"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; height: 350px;">
+
+                    <!-- LEFT COLUMN: Segmentation Image -->
+                    <div class="visual-card"
+                        style="background: var(--surface-light); border-radius: 12px; padding: 0.75rem; height: 100%; display: flex; flex-direction: column;">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
+                            <h3 style="margin: 0; font-size: 0.95rem;">Сегментация</h3>
+                            <label class="custom-checkbox"
+                                style="padding: 0.1rem 0.4rem; font-size: 0.7rem; margin: 0;">
+                                <input type="checkbox" class="post-boxes-toggle" onchange="togglePostBoxes(this)">
+                                <span>Рамки</span>
+                            </label>
+                        </div>
+                        <div class="image-wrapper"
+                            style="border-radius: 8px; overflow: hidden; background: #000 !important; display: flex; justify-content: center; flex-grow: 1;">
+                            <img src="" alt="Сегментация" class="result-image main-img" onclick="openModal(this.src)"
+                                style="max-height: 100%; width: auto; object-fit: contain;">
+                        </div>
+                    </div>
+
+                    <!-- RIGHT COLUMN: Scrollable Stats (Filters -> Length Bar -> Area Bar -> Metrics) -->
+                    <div class="stats-column"
+                        style="height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.5rem;">
+
+                        <!-- Filters -->
+                        <div class="filter-controls"
+                            style="display:none; background: var(--surface-light); border-radius: 12px; padding: 0.75rem;">
+                            <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Отображение классов</h3>
+                            <div class="filter-buttons" style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                            </div>
+                        </div>
+
+                        <!-- Length Bar Chart -->
+                        <div class="visual-card chart-card bar-card"
+                            style="display:none; background: var(--surface-light); border-radius: 12px; padding: 0.75rem;">
+                            <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Длина (мм)</h3>
+                            <div class="image-wrapper"
+                                style="border-radius: 8px; overflow: hidden; display: flex; justify-content: center; background: none; border: none; box-shadow: none;">
+                                <img src="" alt="Статистика длин" class="result-chart bar-img"
+                                    onclick="openModal(this.src)"
+                                    style="max-height: 200px; width: auto; object-fit: contain;">
+                            </div>
+                        </div>
+
+                        <!-- Area Bar Chart -->
+                        <div class="visual-card chart-card pie-card"
+                            style="display:none; background: var(--surface-light); border-radius: 12px; padding: 0.75rem;">
+                            <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Площадь (мм²)</h3>
+                            <div class="image-wrapper"
+                                style="border-radius: 8px; overflow: hidden; display: flex; justify-content: center; background: none; border: none; box-shadow: none;">
+                                <img src="" alt="Статистика площадей" class="result-chart pie-img area-img"
+                                    onclick="openModal(this.src)"
+                                    style="max-height: 200px; width: auto; object-fit: contain;">
+                            </div>
+                        </div>
+
+                        <!-- Metrics Grid -->
+                        <div class="metrics-card filter-card"
+                            style="background: var(--surface-light); border-radius: 12px; padding: 0.75rem; margin: 0; box-shadow: none;">
+                            <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Подробные метрики</h3>
+                            <div class="metrics-grid" style="grid-template-columns: 1fr; gap: 0.5rem;">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
 
     <script>
-        // ==================== DRAG & DROP + SUBMIT LOGIC ====================
+        // ==================== STATE ====================
+        let processedAnalysisIds = [];
+
+        // Load settings from localStorage
+        const showBoxesCheckbox = document.getElementById('show-boxes-toggle');
+        const savedShowBoxes = localStorage.getItem('plant_ai_show_boxes');
+        if (savedShowBoxes !== null) {
+            showBoxesCheckbox.checked = (savedShowBoxes === 'true');
+        }
+
+        showBoxesCheckbox.addEventListener('change', (e) => {
+            localStorage.setItem('plant_ai_show_boxes', e.target.checked);
+        });
+
+        // ==================== UI HELPERS ====================
+        function openModal(src) {
+            document.getElementById('modalImg').src = src;
+            document.getElementById('imgModal').classList.add('open');
+        }
+        function closeModal(e) {
+            if (e.target === document.getElementById('imgModal')) {
+                document.getElementById('imgModal').classList.remove('open');
+            }
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') document.getElementById('imgModal').classList.remove('open');
+        });
+
+        // ==================== DRAG & DROP / UPLOAD LOGIC ====================
         const dropZoneElement = document.getElementById("drop-zone");
         const inputElement = document.getElementById("file-input");
-        const formElement = document.getElementById("upload-form");
         const loadingOverlay = document.getElementById("loading-overlay");
+        const loadingText = document.getElementById("loading-text");
+        const gallery = document.getElementById("results-gallery");
+        const emptyState = document.getElementById("empty-state");
+        const batchActions = document.getElementById("batch-actions");
 
         if (dropZoneElement) {
             dropZoneElement.addEventListener("click", e => {
@@ -251,349 +490,260 @@
 
             inputElement.addEventListener("change", e => {
                 if (inputElement.files.length) {
-                    updateThumbnail(dropZoneElement, inputElement.files[0]);
-                    submitForm();
+                    processFiles(inputElement.files);
                 }
             });
 
-            dropZoneElement.addEventListener("dragover", e => {
-                e.preventDefault();
-                dropZoneElement.classList.add("drop-zone--over");
-            });
-
-            ["dragleave", "dragend"].forEach(type => {
-                dropZoneElement.addEventListener(type, e => {
-                    dropZoneElement.classList.remove("drop-zone--over");
-                });
-            });
-
+            dropZoneElement.addEventListener("dragover", e => { e.preventDefault(); dropZoneElement.classList.add("drop-zone--over"); });
+            ["dragleave", "dragend"].forEach(type => { dropZoneElement.addEventListener(type, e => { dropZoneElement.classList.remove("drop-zone--over"); }); });
             dropZoneElement.addEventListener("drop", e => {
                 e.preventDefault();
                 if (e.dataTransfer.files.length) {
-                    inputElement.files = e.dataTransfer.files;
-                    updateThumbnail(dropZoneElement, e.dataTransfer.files[0]);
-                    submitForm();
+                    processFiles(e.dataTransfer.files);
                 }
                 dropZoneElement.classList.remove("drop-zone--over");
             });
         }
 
-        function updateThumbnail(dropZoneElement, file) {
-            let prompt = dropZoneElement.querySelector(".drop-zone__prompt");
-            if (prompt) {
-                prompt.innerHTML = `<span style="color:var(--primary-light)">Выбран файл:</span><br><strong>${file.name}</strong>`;
-            }
-        }
+        async function processFiles(files) {
+            if (files.length === 0) return;
 
-        function submitForm() {
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'flex';
-                setTimeout(() => {
-                    loadingOverlay.classList.add('active');
-                }, 10);
-            }
-            formElement.submit();
-        }
+            // Hide empty state
+            if (emptyState) emptyState.style.display = 'none';
 
-        // ==================== LIGHTBOX FUNCTIONALITY ====================
-        const lightboxModal = document.getElementById('lightboxModal');
-        const lightboxImage = document.getElementById('lightboxImage');
-        const lightboxFilters = document.getElementById('lightboxFilters');
-        const resultImage = document.getElementById('resultImage');
+            // Show loading
+            loadingOverlay.style.display = 'flex';
+            setTimeout(() => { loadingOverlay.classList.add('active'); }, 10);
 
-        // Открытие lightbox по клику на изображение
-        if (resultImage) {
-            resultImage.style.cursor = 'zoom-in';
-            resultImage.addEventListener('click', openLightbox);
-        }
+            const segModel = document.querySelector('input[name="seg_model"]:checked').value;
+            const showBoxes = showBoxesCheckbox.checked;
 
-        function openLightbox() {
-            if (!resultImage) return;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                loadingText.innerText = `Анализ: ${file.name} (${i + 1}/${files.length})...`;
 
-            // Копируем src изображения
-            lightboxImage.src = resultImage.src;
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('seg_model', segModel);
+                formData.append('show_boxes', showBoxes ? 'on' : 'off');
 
-            // Копируем кнопки фильтров с сохранением состояния и русских названий
-            const mainFilters = document.getElementById('filterButtons');
-            if (mainFilters && lightboxFilters) {
-                lightboxFilters.innerHTML = ''; // Очистка
-                const mainButtons = mainFilters.querySelectorAll('.filter-btn');
+                try {
+                    const response = await fetch('/api/analyze', { method: 'POST', body: formData });
+                    const data = await response.json();
 
-                mainButtons.forEach(btn => {
-                    const clone = btn.cloneNode(true);
-                    // Сохраняем состояние active
-                    if (btn.classList.contains('active')) {
-                        clone.classList.add('active');
+                    if (data.success) {
+                        renderResult(data, showBoxes);
+                        processedAnalysisIds.push(data.analysis_id);
                     } else {
-                        clone.classList.remove('active');
+                        alert(`Ошибка файла ${file.name}: ${data.error}`);
                     }
-                    // Переназначаем onclick с тем же className
-                    const className = btn.dataset.class;
-                    clone.onclick = function() { toggleClass(className); };
-                    lightboxFilters.appendChild(clone);
-                });
+                } catch (error) {
+                    console.error(error);
+                    alert(`Сетевая ошибка при загрузке ${file.name}`);
+                }
             }
 
-            // Показываем модалку
-            lightboxModal.classList.add('active');
-            document.body.style.overflow = 'hidden'; // Блокируем скролл фона
-        }
+            // Hide loading overlay
+            loadingOverlay.classList.remove('active');
+            setTimeout(() => { loadingOverlay.style.display = 'none'; }, 400);
 
-        // Закрытие lightbox
-        function closeLightbox() {
-            lightboxModal.classList.remove('active');
-            document.body.style.overflow = ''; // Возвращаем скролл
-        }
-
-        // Закрытие по Escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && lightboxModal?.classList.contains('active')) {
-                closeLightbox();
+            // Update grid layout based on number of items
+            if (processedAnalysisIds.length > 1) {
+                gallery.classList.add('multi');
             }
-        });
+
+            // Reset input
+            inputElement.value = '';
+
+            // Show export button
+            if (processedAnalysisIds.length > 0) {
+                batchActions.style.display = 'flex';
+            }
+
+            // Scroll to top of results
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ==================== RENDER RESULT ====================
+        function renderResult(data, initialShowBoxes) {
+            const template = document.getElementById('result-template');
+            const clone = template.content.cloneNode(true);
+            const container = clone.querySelector('.results-container');
+            container.dataset.analysisId = data.analysis_id;
+
+            // Hero
+            const nameDisp = clone.querySelector('.class-name-disp');
+            const badge = clone.querySelector('.model-badge');
+            badge.className = `model-badge model-badge--${data.seg_model}`;
+            badge.innerText = data.seg_model.toUpperCase();
+            nameDisp.innerHTML = `<span style="word-break: break-all;">${data.class_name || data.original_filename}</span> ` + badge.outerHTML;
+            clone.querySelector('.length-disp').innerHTML += ` Длина: ${data.total_length} мм`;
+            clone.querySelector('.area-disp').innerHTML += ` Площадь: ${data.total_area} мм²`;
+
+            // Checkbox sync
+            const postBoxToggle = clone.querySelector('.post-boxes-toggle');
+            postBoxToggle.checked = initialShowBoxes;
+
+            // Images
+            clone.querySelector('.main-img').src = `data:image/jpeg;base64,${data.annotated_b64}`;
+
+            if (data.chart_b64) {
+                clone.querySelector('.pie-card').style.display = 'flex';
+                clone.querySelector('.area-img').src = `data:image/jpeg;base64,${data.chart_b64}`;
+            }
+            if (data.bar_chart_b64) {
+                clone.querySelector('.bar-card').style.display = 'flex';
+                clone.querySelector('.bar-img').src = `data:image/jpeg;base64,${data.bar_chart_b64}`;
+            }
+
+            // Metrics & Filters
+            const filterControls = clone.querySelector('.filter-controls');
+            const filterButtons = clone.querySelector('.filter-buttons');
+            const metricsGrid = clone.querySelector('.metrics-grid');
+
+            if (data.seg_model === 'yolo' || data.seg_model === 'unet') {
+                filterControls.style.display = 'block';
+            }
+
+            const allClasses = Object.keys(data.class_metrics);
+            container.dataset.activeClasses = JSON.stringify(allClasses);
+
+            for (const [c_name, metrics] of Object.entries(data.class_metrics)) {
+                // Add Filter button
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'filter-btn active';
+                btn.dataset.class = c_name;
+                btn.onclick = () => toggleClassFilter(container, c_name, btn);
+                btn.innerHTML = `<span class="filter-btn-icon">👁</span> <span class="filter-btn-label">${c_name.charAt(0).toUpperCase() + c_name.slice(1)}</span> <span class="filter-btn-count">${metrics.count} шт.</span>`;
+                filterButtons.appendChild(btn);
+
+                // Add Metric Grid Item
+                const mItem = document.createElement('div');
+                mItem.className = 'metric-item';
+                mItem.id = `metric-${data.analysis_id}-${c_name}`;
+                mItem.innerHTML = `
+                    <h4 class="metric-title">${c_name.charAt(0).toUpperCase() + c_name.slice(1)} ${metrics.count > 1 ? `<span class="count-tag">${metrics.count} шт.</span>` : ''}</h4>
+                    <div class="metric-stats">
+                        <p>Площадь <span class="stat-value">${parseFloat(metrics.area || 0).toFixed(2)} мм²</span></p>
+                        <p>Длина <span class="stat-value">${parseFloat(metrics.length || 0).toFixed(2)} мм</span></p>
+                    </div>
+                `;
+                metricsGrid.appendChild(mItem);
+            }
+
+            // Prepend new results
+            gallery.prepend(clone);
+        }
 
         // ==================== DYNAMIC FILTERING ====================
-        let activeClasses = new Set();
+        async function toggleClassFilter(container, className, btnEl) {
+            let active = JSON.parse(container.dataset.activeClasses);
 
-        // Инициализация при загрузке страницы
-        document.addEventListener('DOMContentLoaded', function() {
-            const buttons = document.querySelectorAll('#filterButtons .filter-btn');
-            buttons.forEach(btn => {
-                if (btn.classList.contains('active')) {
-                    activeClasses.add(btn.dataset.class);
-                }
-            });
-        });
+            const metricItem = container.querySelector(`#metric-${container.dataset.analysisId}-${className}`);
 
-        // Переключение класса (работает из основного вида и из lightbox)
-        function toggleClass(className) {
-            const mainBtn = document.querySelector(`#filterButtons .filter-btn[data-class="${className}"]`);
-            const lightboxBtn = document.querySelector(`#lightboxFilters .filter-btn[data-class="${className}"]`);
-            const metricItem = document.querySelector(`#metric-${className}`);
-
-            // 🚫 Нельзя отключить последний активный класс
-            if (activeClasses.has(className) && activeClasses.size === 1) {
-                [mainBtn, lightboxBtn].forEach(btn => {
-                    if (btn) {
-                        btn.style.animation = 'none';
-                        btn.offsetHeight; // reflow
-                        btn.style.animation = 'shake 0.3s';
-                        setTimeout(() => { btn.style.animation = ''; }, 300);
-                    }
-                });
-                return;
-            }
-
-            // Переключаем состояние
-            if (activeClasses.has(className)) {
-                activeClasses.delete(className);
-                [mainBtn, lightboxBtn].forEach(btn => btn?.classList.remove('active'));
-                if (metricItem) {
-                    metricItem.style.opacity = '0.3';
-                    metricItem.style.filter = 'grayscale(100%)';
-                }
+            if (active.includes(className)) {
+                active = active.filter(c => c !== className);
+                btnEl.classList.remove('active');
+                if (metricItem) { metricItem.style.opacity = '0.3'; metricItem.style.filter = 'grayscale(100%)'; }
             } else {
-                activeClasses.add(className);
-                [mainBtn, lightboxBtn].forEach(btn => btn?.classList.add('active'));
-                if (metricItem) {
-                    metricItem.style.opacity = '1';
-                    metricItem.style.filter = 'none';
-                }
+                active.push(className);
+                btnEl.classList.add('active');
+                if (metricItem) { metricItem.style.opacity = '1'; metricItem.style.filter = 'none'; }
             }
+            container.dataset.activeClasses = JSON.stringify(active);
 
-            updateFilteredImage();
+            await fetchUpdate(container);
         }
 
-        // AJAX-запрос на сервер для обновления изображения
-        async function updateFilteredImage() {
+        async function togglePostBoxes(checkbox) {
+            const container = checkbox.closest('.results-container');
+            await fetchUpdate(container, checkbox.checked);
+        }
+
+        async function fetchUpdate(container, overrideShowBoxes = null) {
             try {
-                const showBoxesCheckbox = document.querySelector('input[name="show_boxes"]');
-                const showBoxes = showBoxesCheckbox ? showBoxesCheckbox.checked : true;
+                const analysisId = container.dataset.analysisId;
+                const active = JSON.parse(container.dataset.activeClasses);
+                const postBoxToggle = container.querySelector('.post-boxes-toggle');
+
+                const showBoxes = overrideShowBoxes !== null ? overrideShowBoxes : postBoxToggle.checked;
+
+                const img = container.querySelector('.main-img');
+                img.style.opacity = '0.5';
 
                 const response = await fetch('/api/filter', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        selected_classes: Array.from(activeClasses),
+                        analysis_id: analysisId,
+                        selected_classes: active,
                         show_boxes: showBoxes
                     })
                 });
 
                 const data = await response.json();
-
                 if (data.success && data.annotated_b64) {
-                    // Обновляем основное изображение
-                    const img = document.getElementById('resultImage');
-                    if (img) {
-                        img.style.opacity = '0.5';
-                        img.style.transition = 'opacity 0.2s ease';
-                        setTimeout(() => {
-                            img.src = `data:image/jpeg;base64,${data.annotated_b64}`;
-                            img.onload = () => {
-                                img.style.opacity = '1';
-                                // Если lightbox открыт — обновляем и его
-                                if (lightboxModal?.classList.contains('active')) {
-                                    lightboxImage.src = img.src;
-                                }
-                            };
-                        }, 200);
-                    }
+                    img.src = `data:image/jpeg;base64,${data.annotated_b64}`;
+                    img.onload = () => { img.style.opacity = '1'; };
 
-                    // Обновляем бейджи с метриками
-                    if (data.total_area !== undefined) {
-                        const areaBadge = document.querySelector('.badge-area');
-                        if (areaBadge) {
-                            areaBadge.innerHTML = `
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                                </svg>
-                                Площадь: ${parseFloat(data.total_area).toFixed(2)} мм²
-                            `;
-                        }
+                    const areaBadge = container.querySelector('.badge-area');
+                    if (areaBadge && data.total_area) {
+                        areaBadge.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg> Площадь: ${data.total_area} мм²`;
                     }
-                    if (data.total_length !== undefined) {
-                        const lengthBadge = document.querySelector('.badge-length');
-                        if (lengthBadge) {
-                            lengthBadge.innerHTML = `
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
-                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                                </svg>
-                                Длина: ${parseFloat(data.total_length).toFixed(2)} мм
-                            `;
-                        }
+                    const lengthBadge = container.querySelector('.badge-length');
+                    if (lengthBadge && data.total_length) {
+                        lengthBadge.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg> Длина: ${data.total_length} мм`;
                     }
-                } else if (data.error) {
-                    console.error('Server error:', data.error);
+                } else {
+                    img.style.opacity = '1';
                 }
-            } catch (error) {
-                console.error('Error updating filtered image:', error);
+            } catch (err) {
+                console.error(err);
+                container.querySelector('.main-img').style.opacity = '1';
             }
         }
 
-        // ==================== ZOOM FUNCTIONALITY ====================
-let zoomLevel = 1;
-let isDragging = false;
-let startX, startY, translateX = 0, translateY = 0;
-const lightboxImageWrapper = document.querySelector('.lightbox-image-wrapper');
+        // ==================== EXPORT BATCH ====================
+        async function exportAll() {
+            if (processedAnalysisIds.length === 0) return;
 
-function updateZoom() {
-    if (!lightboxImage) return;
-    lightboxImage.style.transform = `scale(${zoomLevel}) translate(${translateX}px, ${translateY}px)`;
-    lightboxImage.style.transition = isDragging ? 'none' : 'transform 0.2s ease';
-}
+            const btn = document.querySelector('#batch-actions .btn-primary');
+            const originalText = btn.innerHTML;
+            btn.innerText = 'Генерация архива...';
+            btn.disabled = true;
 
-function resetZoom() {
-    zoomLevel = 1;
-    translateX = 0;
-    translateY = 0;
-    updateZoom();
-    updateZoomLevelDisplay();
-}
+            try {
+                const response = await fetch('/api/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ analysis_ids: processedAnalysisIds })
+                });
 
-function zoomIn() {
-    if (zoomLevel < 5) {
-        zoomLevel += 0.25;
-        updateZoom();
-        updateZoomLevelDisplay();
-    }
-}
-
-function zoomOut() {
-    if (zoomLevel > 0.25) {
-        zoomLevel -= 0.25;
-        updateZoom();
-        updateZoomLevelDisplay();
-    }
-}
-
-function updateZoomLevelDisplay() {
-    const zoomDisplay = document.getElementById('zoomLevelDisplay');
-    if (zoomDisplay) {
-        zoomDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
-    }
-}
-
-// Зум колесиком мыши
-if (lightboxImageWrapper) {
-    lightboxImageWrapper.addEventListener('wheel', function(e) {
-        e.preventDefault();
-        if (e.deltaY < 0) {
-            zoomIn();
-        } else {
-            zoomOut();
-        }
-    }, { passive: false });
-
-    // Drag (перетаскивание) при зуме
-    lightboxImageWrapper.addEventListener('mousedown', function(e) {
-        if (zoomLevel > 1) {
-            isDragging = true;
-            startX = e.clientX - translateX;
-            startY = e.clientY - translateY;
-            lightboxImageWrapper.style.cursor = 'grabbing';
-        }
-    });
-
-    document.addEventListener('mousemove', function(e) {
-        if (isDragging && zoomLevel > 1) {
-            e.preventDefault();
-            translateX = e.clientX - startX;
-            translateY = e.clientY - startY;
-            updateZoom();
-        }
-    });
-
-    document.addEventListener('mouseup', function() {
-        if (isDragging) {
-            isDragging = false;
-            lightboxImageWrapper.style.cursor = 'zoom-in';
-        }
-    });
-}
-
-// Открываем lightbox с сбросом зума
-function openLightbox() {
-    if (!resultImage) return;
-
-    // Сбрасываем зум при открытии
-    resetZoom();
-
-    lightboxImage.src = resultImage.src;
-
-    const mainFilters = document.getElementById('filterButtons');
-    if (mainFilters && lightboxFilters) {
-        lightboxFilters.innerHTML = '';
-        const mainButtons = mainFilters.querySelectorAll('.filter-btn');
-
-        mainButtons.forEach(btn => {
-            const clone = btn.cloneNode(true);
-            if (btn.classList.contains('active')) {
-                clone.classList.add('active');
-            } else {
-                clone.classList.remove('active');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'analysis_export.zip';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const err = await response.json();
+                    alert(`Ошибка при экспорте: ${err.error}`);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Ошибка сети при скачивании");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
-            const className = btn.dataset.class;
-            clone.onclick = function() { toggleClass(className); };
-            lightboxFilters.appendChild(clone);
-        });
-    }
-
-    lightboxModal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
-
-// Добавляем обработчик двойного клика для быстрого зума
-if (lightboxImageWrapper) {
-    lightboxImageWrapper.addEventListener('dblclick', function(e) {
-        if (zoomLevel > 1) {
-            resetZoom();
-        } else {
-            zoomIn();
         }
-    });
-}
+
     </script>
 </body>
+
 </html>

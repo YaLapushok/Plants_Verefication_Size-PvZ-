@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>История анализов — Plant AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* ── DB-specific styles ── */
+        .db-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: 'Outfit', sans-serif;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover,
+        .tab-btn.active {
+            background: var(--primary);
+            color: #fff;
+            border-color: var(--primary);
+        }
+
+        /* Gallery grid */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .gallery-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.25s, box-shadow 0.25s;
+        }
+
+        .gallery-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+        }
+
+        .gallery-card__thumb {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+            background: #0a1f14;
+            display: block;
+        }
+
+        .gallery-card__body {
+            padding: 1rem 1.1rem 1.2rem;
+        }
+
+        .gallery-card__title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .gallery-card__date {
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.6rem;
+        }
+
+        .gallery-card__metrics {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.8rem;
+        }
+
+        .metric-pill {
+            background: rgba(3, 160, 98, 0.15);
+            border: 1px solid rgba(3, 160, 98, 0.3);
+            color: var(--primary-light);
+            font-size: 0.78rem;
+            padding: 0.2rem 0.65rem;
+            border-radius: 999px;
+        }
+
+        .model-pill {
+            background: rgba(99, 102, 241, 0.15);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: #a5b4fc;
+            font-size: 0.75rem;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        .gallery-card__actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-view {
+            flex: 1;
+            text-align: center;
+            background: rgba(3, 160, 98, 0.15);
+            border: 1px solid rgba(3, 160, 98, 0.3);
+            color: var(--primary-light);
+            padding: 0.45rem 0.5rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            text-decoration: none;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-view:hover {
+            background: rgba(3, 160, 98, 0.3);
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+            padding: 0.45rem 0.7rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            transition: background 0.2s;
+        }
+
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        /* Report table */
+        .report-section {
+            margin-top: 1rem;
+        }
+
+        .report-table-wrap {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+
+        .report-table th {
+            background: rgba(3, 160, 98, 0.15);
+            color: var(--primary-light);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .report-table td {
+            padding: 0.65rem 1rem;
+            color: var(--text-primary);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .report-table tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state svg {
+            opacity: 0.3;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        /* Image modal */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-backdrop.open {
+            display: flex;
+        }
+
+        .modal-img {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.5rem;
+            right: 2rem;
+            color: #fff;
+            font-size: 2rem;
+            cursor: pointer;
+            background: none;
+            border: none;
+            line-height: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="glass-bg"></div>
+    <div class="container">
+
+        <header>
+            <div class="logo-container">
+                <svg viewBox="0 0 24 24" fill="none" class="logo-icon" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22c0-4.418.001-8.204 0-12" />
+                    <path d="M12 10c0-3 2-6 6-6-3 0-6 2-6 6z" fill="currentColor" />
+                    <path d="M12 14c0-3-2-6-6-6 3 0 6 2 6 6z" fill="currentColor" />
+                    <path d="M12 18c0-2.5 1.5-4 4-4-2 0-4 1.5-4 4z" fill="currentColor" />
+                </svg>
+            </div>
+            <h1>История анализов</h1>
+            <p>База данных всех проведённых сегментаций и замеров</p>
+            <a href="/" class="db-link-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                </svg>
+                Новый анализ
+            </a>
+        </header>
+
+        <main>
+            <div class="db-header-row">
+                <div class="filter-tabs">
+                    <a href="/db" class="tab-btn {% if not active_plant %}active{% endif %}">Все</a>
+                    {% for pt in plant_types %}
+                    <a href="/db?plant={{ pt }}" class="tab-btn {% if active_plant == pt %}active{% endif %}">{{ pt
+                        }}</a>
+                    {% endfor %}
+                </div>
+                <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <span style="color:var(--text-secondary); font-size:0.85rem;">{{ rows|length }} записей</span>
+                    {% if rows %}
+                    <button class="btn-primary" onclick="exportSelected()"
+                        style="padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.85rem; background: rgba(99,102,241,0.15); border: 1px solid rgba(99,102,241,0.4); color: #a5b4fc; box-shadow: none;">Экспорт
+                        выбранных</button>
+                    <button class="btn-primary" onclick="exportAllDB()"
+                        style="padding: 0.4rem 1rem; border-radius: 50px; font-size: 0.85rem; background: rgba(99,102,241,0.3); border: 1px solid rgba(99,102,241,0.5); color: #fff; box-shadow: none;">Экспорт
+                        всех</button>
+                    <form method="post" action="/db/clear" style="margin:0;"
+                        onsubmit="return confirm('Вы уверены? Это навсегда удалит ВСЕ записи из базы данных!')">
+                        <button type="submit" class="btn-delete" style="padding: 0.4rem 1rem; border-radius: 50px;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                style="vertical-align: text-bottom; margin-right: 0.3rem;">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path
+                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                </path>
+                            </svg>
+                            Очистить всё
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if rows %}
+
+            <!-- Gallery Grid -->
+            <div class="gallery-grid">
+                {% for row in rows %}
+                <div class="gallery-card" style="position: relative;">
+                    <input type="checkbox" class="db-checkbox" value="{{ row.id }}"
+                        style="position: absolute; top: 1rem; left: 1rem; z-index: 10; width: 1.2rem; height: 1.2rem; accent-color: var(--primary-color); cursor: pointer;">
+                    <img src="/db/image/{{ row.id }}/segmented" alt="{{ row.plant_class }}" class="gallery-card__thumb"
+                        loading="lazy" onerror="this.style.minHeight='120px';this.alt='Нет изображения'">
+                    <div class="gallery-card__body">
+                        <div class="gallery-card__title">{{ row.plant_class }}</div>
+                        <div class="gallery-card__date">{{ row.timestamp }} &nbsp;|&nbsp; {{ row.filename }}</div>
+                        <div class="gallery-card__metrics">
+                            <span class="metric-pill">Длина: {{ "%.1f"|format(row.total_length) }} мм</span>
+                            <span class="metric-pill">Площадь: {{ "%.1f"|format(row.total_area) }} мм²</span>
+                            <span class="model-pill">{{ row.seg_model.upper() }}</span>
+                        </div>
+                        <div class="gallery-card__actions">
+                            <button class="btn-view"
+                                onclick="openModal('/db/image/{{ row.id }}/segmented')">Сегментация</button>
+                            <button class="btn-view" onclick="openModal('/db/image/{{ row.id }}/original')"
+                                style="background:rgba(255,255,255,0.05);border-color:rgba(255,255,255,0.1);color:var(--text-secondary);">Оригинал</button>
+                            <form method="post" action="/db/delete/{{ row.id }}" style="margin:0;"
+                                onsubmit="return confirm('Удалить запись?')">
+                                <button type="submit" class="btn-delete">✕</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Report Table -->
+            <div class="premium-card report-section">
+                <h3 style="font-family:'Outfit',sans-serif;font-size:1.4rem;margin-bottom:1.2rem;">Сводный отчёт</h3>
+                <div class="report-table-wrap">
+                    <table class="report-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox"
+                                        style="accent-color: var(--primary-color); cursor: pointer;"
+                                        onchange="toggleAllCheckboxes(this)"></th>
+                                <th>#</th>
+                                <th>Дата</th>
+                                <th>Файл</th>
+                                <th>Растение</th>
+                                <th>Модель</th>
+                                <th>Длина (мм)</th>
+                                <th>Площадь (мм²)</th>
+                                {% set sample = rows[0] %}
+                                {% if sample.class_metrics %}
+                                {% for part_name in sample.class_metrics.keys() %}
+                                <th>{{ part_name.capitalize() }} — длина</th>
+                                <th>{{ part_name.capitalize() }} — площадь</th>
+                                {% endfor %}
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                            <tr>
+                                <td><input type="checkbox" class="db-checkbox-table" value="{{ row.id }}"
+                                        style="accent-color: var(--primary-color); cursor: pointer;"
+                                        onchange="syncCheckboxes(this)"></td>
+                                <td>{{ row.id }}</td>
+                                <td>{{ row.timestamp }}</td>
+                                <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                    {{ row.filename }}</td>
+                                <td>{{ row.plant_class }}</td>
+                                <td><span class="model-pill">{{ row.seg_model.upper() }}</span></td>
+                                <td>{{ "%.2f"|format(row.total_length) }}</td>
+                                <td>{{ "%.2f"|format(row.total_area) }}</td>
+                                {% if row.class_metrics %}
+                                {% for part_name, part_data in row.class_metrics.items() %}
+                                <td>{{ "%.2f"|format(part_data.get('length', 0)) }}</td>
+                                <td>{{ "%.2f"|format(part_data.get('area', 0)) }}</td>
+                                {% endfor %}
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {% else %}
+            <div class="empty-state">
+                <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <ellipse cx="12" cy="5" rx="9" ry="3" />
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+                </svg>
+                <h3>База данных пуста</h3>
+                <p>Загрузите первое изображение для анализа</p>
+                <a href="/" class="btn-primary"
+                    style="display:inline-flex;margin-top:1.5rem;text-decoration:none;">Начать анализ</a>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="modal-backdrop" id="imgModal" onclick="closeModal(event)">
+        <button class="modal-close" onclick="document.getElementById('imgModal').classList.remove('open')">×</button>
+        <img class="modal-img" id="modalImg" src="" alt="Изображение">
+    </div>
+
+    <script>
+        function openModal(src) {
+            document.getElementById('modalImg').src = src;
+            document.getElementById('imgModal').classList.add('open');
+        }
+        function closeModal(e) {
+            if (e.target === document.getElementById('imgModal')) {
+                document.getElementById('imgModal').classList.remove('open');
+            }
+        }
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') document.getElementById('imgModal').classList.remove('open');
+        });
+
+        // Checkbox Sync logic
+        const galleryCheckboxes = document.querySelectorAll('.db-checkbox');
+        const tableCheckboxes = document.querySelectorAll('.db-checkbox-table');
+
+        galleryCheckboxes.forEach(cb => {
+            cb.addEventListener('change', (e) => {
+                const id = e.target.value;
+                const tableCb = document.querySelector(`.db-checkbox-table[value="${id}"]`);
+                if (tableCb) tableCb.checked = e.target.checked;
+                updateSelectAllState();
+            });
+        });
+
+        function syncCheckboxes(tableCb) {
+            const id = tableCb.value;
+            const galleryCb = document.querySelector(`.db-checkbox[value="${id}"]`);
+            if (galleryCb) galleryCb.checked = tableCb.checked;
+            updateSelectAllState();
+        }
+
+        function toggleAllCheckboxes(masterCb) {
+            const isChecked = masterCb.checked;
+            galleryCheckboxes.forEach(cb => cb.checked = isChecked);
+            tableCheckboxes.forEach(cb => cb.checked = isChecked);
+        }
+
+        function updateSelectAllState() {
+            const masterCb = document.getElementById('selectAllCheckbox');
+            if (!masterCb) return;
+            const allChecked = Array.from(tableCheckboxes).every(cb => cb.checked);
+            const someChecked = Array.from(tableCheckboxes).some(cb => cb.checked);
+            masterCb.checked = allChecked;
+            masterCb.indeterminate = someChecked && !allChecked;
+        }
+
+        // DB Export Logic
+        async function runExport(ids) {
+            if (ids.length === 0) {
+                alert("Нет данных для экспорта.");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ analysis_ids: ids })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `plant_db_export_${new Date().toISOString().split('T')[0]}.zip`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    const error = await response.json();
+                    alert("Ошибка экспорта: " + (error.error || "Неизвестная ошибка"));
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Сетевая ошибка при экспорте.");
+            }
+        }
+
+        function exportSelected() {
+            const selectedIds = Array.from(document.querySelectorAll('.db-checkbox:checked')).map(cb => parseInt(cb.value));
+            if (selectedIds.length === 0) {
+                alert("Выберите хотя бы один анализ для экспорта!");
+                return;
+            }
+            runExport(selectedIds);
+        }
+
+        function exportAllDB() {
+            const allIds = Array.from(document.querySelectorAll('.db-checkbox')).map(cb => parseInt(cb.value));
+            runExport(allIds);
+        }
+    </script>
+</body>
+
+</html>
