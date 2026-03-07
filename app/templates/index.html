@@ -24,6 +24,17 @@
             margin-top: 1.5rem;
         }
 
+@keyframes shake-btn {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+}
+
+.filter-btn.shake {
+    animation: shake-btn 0.4s ease-in-out;
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4) !important;
+}
         /* Image modal */
         .modal-backdrop {
             display: none;
@@ -55,7 +66,23 @@
             cursor: pointer;
             background: none;
             border: none;
-        }
+            /* Modal Zoom Controls */
+            }
+
+
+            .modal-img {
+                max-width: 90vw;
+                max-height: 90vh;
+                border-radius: 12px;
+                box-shadow: var(--shadow-md);
+                transition: transform 0.3s ease;
+                transform-origin: center center;
+                cursor: grab;
+            }
+
+            .modal-img:active {
+                cursor: grabbing;
+            }
 
         /* Fix image black frames */
         .image-wrapper {
@@ -222,7 +249,7 @@
                     </p>
                 </div>
             </div>
-            <a href="/db" class="db-link-btn">
+            <a href="/db" target="_blank" class="db-link-btn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
                     <ellipse cx="12" cy="5" rx="9" ry="3" />
@@ -275,11 +302,6 @@
                             <strong>U-Net:</strong> Высокая точность.<br>
                             <strong>YOLO:</strong> Быстрая, общие рамки.
                         </p>
-
-                        <label class="custom-checkbox" style="justify-content: center; width: 100%;">
-                            <input type="checkbox" id="show-boxes-toggle" name="show_boxes" checked>
-                            <span>Отображать рамки (Bounding Boxes)</span>
-                        </label>
                     </div>
 
                     <!-- Loading Overlay -->
@@ -334,8 +356,8 @@
 
     <!-- Image Modal -->
     <div class="modal-backdrop" id="imgModal" onclick="closeModal(event)">
-        <button class="modal-close" onclick="document.getElementById('imgModal').classList.remove('open')">×</button>
-        <img class="modal-img" id="modalImg" src="" alt="Zoomed Image">
+    <button class="modal-close" onclick="document.getElementById('imgModal').classList.remove('open')">×</button>
+    <img class="modal-img" id="modalImg" src="" alt="Zoomed Image">
     </div>
 
     <!-- JS TEMPLATE FOR A RESULT BLOCK -->
@@ -372,11 +394,11 @@
 
                 <!-- Explicit 2-column internal layout: Left (Image) | Right (Scrollable Stats) -->
                 <div class="cards-layout"
-                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; height: 350px;">
+                     style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; height: auto;">
 
                     <!-- LEFT COLUMN: Segmentation Image -->
                     <div class="visual-card"
-                        style="background: var(--surface-light); border-radius: 12px; padding: 0.75rem; height: 100%; display: flex; flex-direction: column;">
+                         style="background: var(--surface-light); border-radius: 12px; padding: 0.75rem; height: auto; display: flex; flex-direction: column;">
                         <div
                             style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
                             <h3 style="margin: 0; font-size: 0.95rem;">Сегментация</h3>
@@ -395,7 +417,7 @@
 
                     <!-- RIGHT COLUMN: Scrollable Stats (Filters -> Length Bar -> Area Bar -> Metrics) -->
                     <div class="stats-column"
-                        style="height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.5rem;">
+                         style="height: auto; overflow-y: visible; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.5rem;">
 
                         <!-- Filters -->
                         <div class="filter-controls"
@@ -404,7 +426,11 @@
                             <div class="filter-buttons" style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
                             </div>
                         </div>
-
+<!-- U-Net Color Legend -->
+<div class="unet-legend" style="display:none; background: var(--surface-light); border-radius: 12px; padding: 0.75rem;">
+    <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Легенда классов</h3>
+    <div class="legend-items" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
+</div>
                         <!-- Length Bar Chart -->
                         <div class="visual-card chart-card bar-card"
                             style="display:none; background: var(--surface-light); border-radius: 12px; padding: 0.75rem;">
@@ -447,16 +473,6 @@
         // ==================== STATE ====================
         let processedAnalysisIds = [];
 
-        // Load settings from localStorage
-        const showBoxesCheckbox = document.getElementById('show-boxes-toggle');
-        const savedShowBoxes = localStorage.getItem('plant_ai_show_boxes');
-        if (savedShowBoxes !== null) {
-            showBoxesCheckbox.checked = (savedShowBoxes === 'true');
-        }
-
-        showBoxesCheckbox.addEventListener('change', (e) => {
-            localStorage.setItem('plant_ai_show_boxes', e.target.checked);
-        });
 
         // ==================== UI HELPERS ====================
         function openModal(src) {
@@ -516,7 +532,7 @@
             setTimeout(() => { loadingOverlay.classList.add('active'); }, 10);
 
             const segModel = document.querySelector('input[name="seg_model"]:checked').value;
-            const showBoxes = showBoxesCheckbox.checked;
+            const showBoxes = true;
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
@@ -608,22 +624,54 @@
             const allClasses = Object.keys(data.class_metrics);
             container.dataset.activeClasses = JSON.stringify(allClasses);
 
+            // --- U-Net Color Legend ---
+const legendContainer = clone.querySelector('.unet-legend');
+const legendItems = clone.querySelector('.legend-items');
+if (data.class_colors && Object.keys(data.class_colors).length > 0) {
+    legendContainer.style.display = 'block';
+    for (const [className, color] of Object.entries(data.class_colors)) {
+        const item = document.createElement('div');
+        item.style.display = 'flex';
+        item.style.alignItems = 'center';
+        item.style.gap = '0.5rem';
+        item.style.fontSize = '0.85rem';
+        item.style.color = 'var(--text-secondary)';
+
+        const colorBox = document.createElement('div');
+        colorBox.style.width = '16px';
+        colorBox.style.height = '16px';
+        colorBox.style.backgroundColor = color;
+        colorBox.style.borderRadius = '4px';
+        colorBox.style.border = '1px solid rgba(255,255,255,0.2)';
+
+        const label = document.createElement('span');
+        label.textContent = className.charAt(0).toUpperCase() + className.slice(1);
+
+        item.appendChild(colorBox);
+        item.appendChild(label);
+        legendItems.appendChild(item);
+    }
+}
+
             for (const [c_name, metrics] of Object.entries(data.class_metrics)) {
                 // Add Filter button
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'filter-btn active';
                 btn.dataset.class = c_name;
-                btn.onclick = () => toggleClassFilter(container, c_name, btn);
-                btn.innerHTML = `<span class="filter-btn-icon">👁</span> <span class="filter-btn-label">${c_name.charAt(0).toUpperCase() + c_name.slice(1)}</span> <span class="filter-btn-count">${metrics.count} шт.</span>`;
+                btn.dataset.classNormalized = c_name.toLowerCase();  // для надёжного сравнения
+                btn.onclick = () => toggleClassFilter(container, c_name.toLowerCase(), btn);
+
+                const displayName = c_name.charAt(0).toUpperCase() + c_name.slice(1);
+                btn.innerHTML = `<span class="filter-btn-icon">👁</span> <span class="filter-btn-label">${displayName}</span> <span class="filter-btn-count">${metrics.count} шт.</span>`;
                 filterButtons.appendChild(btn);
 
                 // Add Metric Grid Item
                 const mItem = document.createElement('div');
                 mItem.className = 'metric-item';
-                mItem.id = `metric-${data.analysis_id}-${c_name}`;
+                mItem.id = `metric-${data.analysis_id}-${c_name.toLowerCase()}`;
                 mItem.innerHTML = `
-                    <h4 class="metric-title">${c_name.charAt(0).toUpperCase() + c_name.slice(1)} ${metrics.count > 1 ? `<span class="count-tag">${metrics.count} шт.</span>` : ''}</h4>
+                    <h4 class="metric-title">${displayName} ${metrics.count > 1 ? `<span class="count-tag">${metrics.count} шт.</span>` : ''}</h4>
                     <div class="metric-stats">
                         <p>Площадь <span class="stat-value">${parseFloat(metrics.area || 0).toFixed(2)} мм²</span></p>
                         <p>Длина <span class="stat-value">${parseFloat(metrics.length || 0).toFixed(2)} мм</span></p>
@@ -638,49 +686,65 @@
 
         // ==================== DYNAMIC FILTERING ====================
         async function toggleClassFilter(container, className, btnEl) {
-            let active = JSON.parse(container.dataset.activeClasses);
+    let active = JSON.parse(container.dataset.activeClasses);
+    // Нормализуем имя класса для сравнения
+const normalizedClassName = className.toLowerCase();
+const normalizedActive = active.map(c => c.toLowerCase());
+    const metricItem = container.querySelector(`#metric-${container.dataset.analysisId}-${className}`);
 
-            const metricItem = container.querySelector(`#metric-${container.dataset.analysisId}-${className}`);
-
-            if (active.includes(className)) {
-                active = active.filter(c => c !== className);
-                btnEl.classList.remove('active');
-                if (metricItem) { metricItem.style.opacity = '0.3'; metricItem.style.filter = 'grayscale(100%)'; }
-            } else {
-                active.push(className);
-                btnEl.classList.add('active');
-                if (metricItem) { metricItem.style.opacity = '1'; metricItem.style.filter = 'none'; }
-            }
-            container.dataset.activeClasses = JSON.stringify(active);
-
-            await fetchUpdate(container);
+    // Если пытаемся снять галочку
+    if (normalizedActive.includes(normalizedClassName)) {
+        // Запрещаем снять последнюю галочку — трясём кнопку
+        if (active.length === 1) {
+            btnEl.classList.add('shake');
+            setTimeout(() => btnEl.classList.remove('shake'), 400);
+            return; // Прерываем без alert
         }
+
+        active = active.filter(c => c.toLowerCase() !== normalizedClassName);
+        btnEl.classList.remove('active');
+        if (metricItem) { metricItem.style.opacity = '0.3'; metricItem.style.filter = 'grayscale(100%)'; }
+    } else {
+    if (!normalizedActive.includes(normalizedClassName)) {
+        active.push(className);
+    }
+    btnEl.classList.add('active');
+        if (metricItem) { metricItem.style.opacity = '1'; metricItem.style.filter = 'none'; }
+    }
+    container.dataset.activeClasses = JSON.stringify(active);
+
+    await fetchUpdate(container);
+}
 
         async function togglePostBoxes(checkbox) {
             const container = checkbox.closest('.results-container');
             await fetchUpdate(container, checkbox.checked);
         }
 
-        async function fetchUpdate(container, overrideShowBoxes = null) {
-            try {
-                const analysisId = container.dataset.analysisId;
-                const active = JSON.parse(container.dataset.activeClasses);
-                const postBoxToggle = container.querySelector('.post-boxes-toggle');
+        async function fetchUpdate(container, overrideShowBoxes = null, classesOverride = undefined) {
+    try {
+        const analysisId = container.dataset.analysisId;
 
-                const showBoxes = overrideShowBoxes !== null ? overrideShowBoxes : postBoxToggle.checked;
+        // Если classesOverride не передан — берём из dataset
+        const active = classesOverride !== undefined
+            ? classesOverride
+            : JSON.parse(container.dataset.activeClasses);
 
-                const img = container.querySelector('.main-img');
-                img.style.opacity = '0.5';
+        const postBoxToggle = container.querySelector('.post-boxes-toggle');
+        const showBoxes = overrideShowBoxes !== null ? overrideShowBoxes : postBoxToggle.checked;
 
-                const response = await fetch('/api/filter', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        analysis_id: analysisId,
-                        selected_classes: active,
-                        show_boxes: showBoxes
-                    })
-                });
+        const img = container.querySelector('.main-img');
+        img.style.opacity = '0.5';
+
+        const response = await fetch('/api/filter', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+    analysis_id: analysisId,
+    selected_classes: active.map(c => c.toLowerCase()),
+    show_boxes: showBoxes
+})
+        });
 
                 const data = await response.json();
                 if (data.success && data.annotated_b64) {
