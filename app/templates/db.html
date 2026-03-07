@@ -265,11 +265,11 @@
             <h1>История анализов</h1>
             <p>База данных всех проведённых сегментаций и замеров</p>
             <a href="/" class="db-link-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6" />
-                </svg>
-                Новый анализ
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+            </svg>
+            ← На главную
             </a>
         </header>
 
@@ -282,6 +282,13 @@
                         }}</a>
                     {% endfor %}
                 </div>
+                <a href="/" class="tab-btn" style="margin-left: auto;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 0.3rem;">
+                <polyline points="15 18 9 12 15 6" />
+                </svg>
+                На главную
+                </a>
                 <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                     <span style="color:var(--text-secondary); font-size:0.85rem;">{{ rows|length }} записей</span>
                     {% if rows %}
@@ -405,7 +412,13 @@
                 <h3>База данных пуста</h3>
                 <p>Загрузите первое изображение для анализа</p>
                 <a href="/" class="btn-primary"
-                    style="display:inline-flex;margin-top:1.5rem;text-decoration:none;">Начать анализ</a>
+                style="display:inline-flex;margin-top:1.5rem;text-decoration:none;align-items:center;gap:0.5rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+                </svg>
+                Начать анализ
+                </a>
             </div>
             {% endif %}
         </main>
