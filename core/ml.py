@@ -21,14 +21,14 @@ MODELS_DIR = os.path.join(BASE_DIR, 'models')
 try:
     logging.info("Loading YOLO models...")
     classificator_model = YOLO(os.path.join(MODELS_DIR, 'classificator.pt'))
-    arugula_seg_model   = YOLO(os.path.join(MODELS_DIR, 'arugula.pt'))
-    wheat_seg_model     = YOLO(os.path.join(MODELS_DIR, 'wheat.pt'))
+    arugula_seg_model = YOLO(os.path.join(MODELS_DIR, 'arugula.pt'))
+    wheat_seg_model = YOLO(os.path.join(MODELS_DIR, 'wheat.pt'))
     logging.info("YOLO models loaded successfully.")
 except Exception as e:
     logging.error(f"Failed to load YOLO models: {e}")
     classificator_model = None
-    arugula_seg_model   = None
-    wheat_seg_model     = None
+    arugula_seg_model = None
+    wheat_seg_model = None
 
 # ─────────────────────────── U-NET MODELS ─────────────────────────────
 try:
@@ -40,18 +40,21 @@ try:
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f"Using device for U-Net: {DEVICE}")
 
+
     # U-Net model architecture used during training
     def _build_unet():
         return smp.Unet(
             encoder_name='resnet50',
-            encoder_weights=None,      # weights loaded from .pth
+            encoder_weights=None,  # weights loaded from .pth
             in_channels=3,
             classes=4,
             activation=None,
         )
 
+
     _UNET_ARUGULA_PATH = os.path.join(MODELS_DIR, 'U-Net', 'rugola_v3_best.pth')
-    _UNET_WHEAT_PATH   = os.path.join(MODELS_DIR, 'U-Net', 'пшеница_4класса.pth')
+    _UNET_WHEAT_PATH = os.path.join(MODELS_DIR, 'U-Net', 'wheat_4classes.pth')
+
 
     def _load_unet(path):
         if not os.path.exists(path):
@@ -65,8 +68,9 @@ try:
         logging.info(f"U-Net loaded: {path}")
         return model
 
+
     unet_arugula_model = _load_unet(_UNET_ARUGULA_PATH)
-    unet_wheat_model   = _load_unet(_UNET_WHEAT_PATH)
+    unet_wheat_model = _load_unet(_UNET_WHEAT_PATH)
 
     # Validation transform (same as training)
     _UNET_TRANSFORM = A.Compose([
@@ -80,20 +84,19 @@ try:
 except Exception as e:
     logging.error(f"Failed to load U-Net models: {e}")
     unet_arugula_model = None
-    unet_wheat_model   = None
-    UNET_AVAILABLE     = False
+    unet_wheat_model = None
+    UNET_AVAILABLE = False
 
-
-CALIB_WIDTH      = 2048
+CALIB_WIDTH = 2048
 BASE_SCALE_FACTOR = 0.10556744  # mm/pixel
 
 # Class colour map for U-Net overlay
 # 0=background, 1=root, 2=stem, 3=leaf
 UNET_CLASS_COLORS = {
-    0: (0,   0,   0),      # black  – background (transparent in overlay)
-    1: (255, 140, 0),      # orange – root (корень)
-    2: (50,  205, 50),     # green  – stem (стебель)
-    3: (0,   120, 255),    # blue   – leaf (листок)
+    0: (0, 0, 0),  # black  – background (transparent in overlay)
+    1: (255, 140, 0),  # orange – root (корень)
+    2: (50, 205, 50),  # green  – stem (стебель)
+    3: (0, 120, 255),  # blue   – leaf (листок)
 }
 # Arugula U-Net classes (same indices as wheat for the unified architecture)
 UNET_CLASS_NAMES = {
@@ -105,14 +108,15 @@ UNET_CLASS_NAMES = {
 
 # Mapping English YOLO names to Russian
 YOLO_RU_MAP = {
-    'koren':  'корень',
+    'koren': 'корень',
     'stebel': 'стебель',
     'listok': 'листок',
-    'kolos':  'колос',
-    'root':   'корень',
-    'stem':   'стебель',
-    'leaf':   'листок'
+    'kolos': 'колос',
+    'root': 'корень',
+    'stem': 'стебель',
+    'leaf': 'листок'
 }
+
 
 # ─────────────────────────── HELPERS ──────────────────────────────────
 
@@ -121,7 +125,7 @@ def _classify_image(image_pil) -> bool:
     if classificator_model is None:
         return False
     cls_results = classificator_model(image_pil, verbose=False)
-    best_class_id   = cls_results[0].probs.top1
+    best_class_id = cls_results[0].probs.top1
     best_class_name = cls_results[0].names[best_class_id].lower()
 
     if 'arugula' in best_class_name or 'рукола' in best_class_name or 'rucola' in best_class_name:
@@ -137,9 +141,16 @@ def _build_charts(class_metrics: dict) -> tuple[bytes | None, bytes | None]:
         return None, None
 
     labels = [n.capitalize() for n in class_metrics.keys()]
-    areas  = [d['area']   for d in class_metrics.values()]
-    lengths= [d['length'] for d in class_metrics.values()]
-    colors = ['#ff9f40', '#4bc0c0', '#9966ff', '#ff6384', '#36a2eb', '#ffcd56'][:len(labels)]
+    areas = [d['area'] for d in class_metrics.values()]
+    lengths = [d['length'] for d in class_metrics.values()]
+    # Синхронизируем цвета с UNET_CLASS_COLORS
+    color_map = {
+        'корень': '#ff8c00',  # оранжевый
+        'стебель': '#32cd32',  # зелёный
+        'листок': '#0078ff',  # синий
+        'колос': '#ff6384',  # розовый
+    }
+    colors = [color_map.get(label.lower(), '#9966ff') for label in labels]
 
     area_bytes = None
     if any(a > 0 for a in areas):
@@ -210,18 +221,22 @@ def _process_yolo(image_pil, is_arugula: bool, show_boxes: bool,
     masks = classes = boxes = names = None
 
     if seg_results and len(seg_results) > 0 and seg_results[0].masks is not None:
-        masks   = seg_results[0].masks.data.cpu().numpy()
+        masks = seg_results[0].masks.data.cpu().numpy()
         classes = seg_results[0].boxes.cls.cpu().numpy()
-        names   = seg_results[0].names
-        boxes   = seg_results[0].boxes.xywh.cpu().numpy()
+        names = seg_results[0].names
+        boxes = seg_results[0].boxes.xywh.cpu().numpy()
 
         unique_classes = {YOLO_RU_MAP.get(names[int(c)].lower(), names[int(c)].lower()) for c in classes}
         available_classes = list(unique_classes)
-        classes_to_show = unique_classes if not selected_classes else set(selected_classes)
+        # Если selected_classes == None — показать всё, если список (даже пустой) — фильтровать
+        if selected_classes is None:
+            classes_to_show = unique_classes
+        else:
+            classes_to_show = set(selected_classes)
 
         for i in range(len(masks)):
             cls_name_ru = YOLO_RU_MAP.get(names[int(classes[i])].lower(), names[int(classes[i])].lower())
-            if cls_name_ru in classes_to_show:
+            if cls_name_ru.lower() in [c.lower() for c in classes_to_show]:
                 valid_indices.append(i)
 
         for i in valid_indices:
@@ -230,17 +245,17 @@ def _process_yolo(image_pil, is_arugula: bool, show_boxes: bool,
             _, _, w, h = boxes[i]
 
             valid_pixels = np.count_nonzero(mask)
-            area_mm2    = valid_pixels * (BASE_SCALE_FACTOR ** 2)
-            length_mm   = math.sqrt(w ** 2 + h ** 2) * BASE_SCALE_FACTOR
+            area_mm2 = valid_pixels * (BASE_SCALE_FACTOR ** 2)
+            length_mm = math.sqrt(w ** 2 + h ** 2) * BASE_SCALE_FACTOR
 
             if cls_name_ru not in class_metrics:
                 class_metrics[cls_name_ru] = {'count': 0, 'area': 0.0, 'length': 0.0}
-            class_metrics[cls_name_ru]['count']  += 1
-            class_metrics[cls_name_ru]['area']   += area_mm2
+            class_metrics[cls_name_ru]['count'] += 1
+            class_metrics[cls_name_ru]['area'] += area_mm2
             class_metrics[cls_name_ru]['length'] += length_mm
 
     total_length = sum(d['length'] for d in class_metrics.values())
-    total_area   = sum(d['area']   for d in class_metrics.values())
+    total_area = sum(d['area'] for d in class_metrics.values())
 
     # Annotated image
     if seg_results and len(seg_results) > 0 and seg_results[0].masks is not None:
@@ -256,7 +271,7 @@ def _process_yolo(image_pil, is_arugula: bool, show_boxes: bool,
         annotated_img = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
 
     annotated_img_rgb = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)
-    annotated_pil  = Image.fromarray(annotated_img_rgb)
+    annotated_pil = Image.fromarray(annotated_img_rgb)
     buf = io.BytesIO()
     annotated_pil.save(buf, format='JPEG', quality=95)
     annotated_bytes = buf.getvalue()
@@ -264,19 +279,19 @@ def _process_yolo(image_pil, is_arugula: bool, show_boxes: bool,
     area_bytes, bar_bytes = _build_charts(class_metrics)
 
     return {
-        'class_metrics':         class_metrics,
-        'available_classes':     available_classes,
+        'class_metrics': class_metrics,
+        'available_classes': available_classes,
         'annotated_image_bytes': annotated_bytes,
-        'chart_bytes':           area_bytes,
-        'bar_chart_bytes':       bar_bytes,
-        'total_area':            total_area,
-        'total_length':          total_length,
-        'all_masks':             masks,
-        'all_classes':           classes,
-        'all_boxes':             boxes,
-        'names':                 names,
-        'class_metrics_all':     class_metrics,
-        'error':                 None,
+        'chart_bytes': area_bytes,
+        'bar_chart_bytes': bar_bytes,
+        'total_area': total_area,
+        'total_length': total_length,
+        'all_masks': masks,
+        'all_classes': classes,
+        'all_boxes': boxes,
+        'names': names,
+        'class_metrics_all': class_metrics,
+        'error': None,
     }
 
 
@@ -300,32 +315,34 @@ def _process_unet(image_pil, is_arugula: bool, selected_classes: list | None = N
     tensor = aug['image'].unsqueeze(0).to(DEVICE)  # (1,3,512,512)
 
     with torch.no_grad():
-        logits = unet_model(tensor)           # (1,4,512,512)
-        pred   = torch.argmax(logits, dim=1)  # (1,512,512)
-        pred   = pred.squeeze(0).cpu().numpy().astype(np.uint8)  # (512,512)
+        logits = unet_model(tensor)  # (1,4,512,512)
+        pred = torch.argmax(logits, dim=1)  # (1,512,512)
+        pred = pred.squeeze(0).cpu().numpy().astype(np.uint8)  # (512,512)
 
     # Resize prediction back to original resolution
     pred_orig = cv2.resize(pred, (orig_w, orig_h), interpolation=cv2.INTER_NEAREST)
+
 
     # Build coloured overlay
     overlay = img_np.copy()
     for class_id, color in UNET_CLASS_COLORS.items():
         if class_id == 0:
             continue  # skip background
-            
         cls_name = UNET_CLASS_NAMES[class_id]
-        if selected_classes and cls_name not in selected_classes:
-            continue
-            
+        if selected_classes is not None:
+            selected_lower = [c.lower() for c in selected_classes]
+            if cls_name.lower() not in selected_lower:
+                continue
+
         mask = (pred_orig == class_id)
         if not mask.any():
             continue
-            
+
         # Draw overlay
         overlay[mask] = (
-            overlay[mask] * 0.4 + np.array(color, dtype=np.float32) * 0.6
+                overlay[mask] * 0.4 + np.array(color, dtype=np.float32) * 0.6
         ).astype(np.uint8)
-        
+
         # Draw bounding boxes if requested
         if show_boxes:
             mask_uint8 = mask.astype(np.uint8) * 255
@@ -333,32 +350,42 @@ def _process_unet(image_pil, is_arugula: bool, selected_classes: list | None = N
             for cnt in contours:
                 x, y, w, h = cv2.boundingRect(cnt)
                 if w >= 5 and h >= 5:  # Skip tiny noise
-                    cv2.rectangle(overlay, (x, y), (x+w, y+h), color, 2)
+                    cv2.rectangle(overlay, (x, y), (x + w, y + h), color, 2)
 
     overlay_pil = Image.fromarray(overlay)
     buf = io.BytesIO()
     overlay_pil.save(buf, format='JPEG', quality=95)
     annotated_bytes = buf.getvalue()
 
-    # ── Metrics from pixel mask ──────────────────────────────────────
+    # ── Metrics from pixel mask ─────────────────────────────────
     class_metrics = {}
     available_classes = []
 
-    for class_id in range(1, 4):   # skip background
+    for class_id in range(1, 4):  # skip background
         cls_name = UNET_CLASS_NAMES[class_id]
         mask = (pred_orig == class_id)
         pixel_count = int(mask.sum())
+
         if pixel_count == 0:
             continue
-            
-        # Optional class filtering logic for U-Net
-        if selected_classes and cls_name not in selected_classes:
-            continue
+
+        if selected_classes is not None:
+            selected_lower = [c.lower() for c in selected_classes]
+            if cls_name.lower() not in selected_lower:
+                continue
 
         available_classes.append(cls_name)
         area_mm2 = pixel_count * (BASE_SCALE_FACTOR ** 2)
 
-        # Bounding box for length
+        # Подсчет количества отдельных объектов (связных компонент)
+        mask_uint8 = mask.astype(np.uint8) * 255
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+            mask_uint8, connectivity=8
+        )
+        # num_labels включает фон (0), поэтому реальных объектов: num_labels - 1
+        object_count = num_labels - 1
+
+        # Bounding box для длины (считаем по всем объектам класса)
         coords = np.argwhere(mask)  # (N, 2) row, col
         if len(coords) > 0:
             r0, c0 = coords.min(axis=0)
@@ -370,30 +397,40 @@ def _process_unet(image_pil, is_arugula: bool, selected_classes: list | None = N
             length_mm = 0.0
 
         class_metrics[cls_name] = {
-            'count':  1,          # U-Net: treat each class as 1 unit per image
-            'area':   area_mm2,
+            'count': object_count,  # Теперь считаем реальные объекты!
+            'area': area_mm2,
             'length': length_mm,
         }
 
     total_length = sum(d['length'] for d in class_metrics.values())
-    total_area   = sum(d['area']   for d in class_metrics.values())
+    total_area = sum(d['area'] for d in class_metrics.values())
 
     area_bytes, bar_bytes = _build_charts(class_metrics)
 
+    # Добавляем информацию о цветах для легенды U-Net
+    class_colors = {}
+    for class_id, color in UNET_CLASS_COLORS.items():
+        if class_id == 0: continue  # пропускаем фон
+        cls_name = UNET_CLASS_NAMES[class_id]
+        if cls_name in class_metrics:  # добавляем только найденные классы
+            class_colors[cls_name] = f"rgb{color}"
+
+
     return {
-        'class_metrics':         class_metrics,
-        'available_classes':     available_classes,
+        'class_metrics': class_metrics,
+        'class_colors': class_colors,
+        'available_classes': available_classes,
         'annotated_image_bytes': annotated_bytes,
-        'chart_bytes':           area_bytes,
-        'bar_chart_bytes':       bar_bytes,
-        'total_area':            total_area,
-        'total_length':          total_length,
-        'all_masks':             None,
-        'all_classes':           None,
-        'all_boxes':             None,
-        'names':                 None,
-        'class_metrics_all':     class_metrics,
-        'error':                 None,
+        'chart_bytes': area_bytes,
+        'bar_chart_bytes': bar_bytes,
+        'total_area': total_area,
+        'total_length': total_length,
+        'all_masks': None,
+        'all_classes': None,
+        'all_boxes': None,
+        'names': None,
+        'class_metrics_all': class_metrics,
+        'error': None,
     }
 
 
