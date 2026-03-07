@@ -93,17 +93,17 @@ BASE_SCALE_FACTOR = 0.10556744  # mm/pixel
 # Class colour map for U-Net overlay
 # 0=background, 1=root, 2=stem, 3=leaf
 UNET_CLASS_COLORS = {
-    0: (0, 0, 0),  # black  – background (transparent in overlay)
-    1: (255, 140, 0),  # orange – root (корень)
-    2: (50, 205, 50),  # green  – stem (стебель)
-    3: (0, 120, 255),  # blue   – leaf (листок)
+    0: (0, 0, 0),
+    1: (255, 140, 0),  # корень
+    2: (0, 120, 255),  # листок (синий) ← поменяли
+    3: (50, 205, 50),  # стебель (зелёный) ← поменяли
 }
 # Arugula U-Net classes (same indices as wheat for the unified architecture)
 UNET_CLASS_NAMES = {
     0: 'background',
     1: 'корень',
-    2: 'стебель',
-    3: 'листок',
+    2: 'листок',    # ← поменяли
+    3: 'стебель',   # ← поменяли
 }
 
 # Mapping English YOLO names to Russian
@@ -117,6 +117,121 @@ YOLO_RU_MAP = {
     'leaf': 'листок'
 }
 
+
+def _plot_yolo_custom(result, show_boxes: bool = True) -> np.ndarray:
+    """
+    Custom YOLO plotting with Russian labels using PIL for Cyrillic support.
+    """
+    from PIL import Image, ImageDraw, ImageFont
+    import cv2
+    import numpy as np
+
+    img = result.orig_img.copy()
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    pil_img = Image.fromarray(img_rgb)
+    draw = ImageDraw.Draw(pil_img)
+
+    # Попытка загрузить шрифт с поддержкой кириллицы
+    font_paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",  # Linux
+        "C:/Windows/Fonts/arial.ttf",  # Windows
+        "/System/Library/Fonts/Helvetica.ttc",  # macOS
+        "arial.ttf",
+        "DejaVuSans.ttf",
+    ]
+
+    font = None
+    for font_path in font_paths:
+        try:
+            font = ImageFont.truetype(font_path, 16)
+            break
+        except:
+            continue
+
+    if font is None:
+        try:
+            font = ImageFont.load_default()
+        except:
+            font = None
+
+    boxes = result.boxes
+
+    if boxes is None or len(boxes) == 0:
+        return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+
+    names_dict = result.names
+    xyxy = boxes.xyxy.cpu().numpy()
+    cls = boxes.cls.cpu().numpy()
+    conf = boxes.conf.cpu().numpy()
+
+    class_name_map = {
+        'koren': 'Корень',
+        'stebel': 'Стебель',
+        'listok': 'Листок',
+        'kolos': 'Колос',
+        'root': 'Корень',
+        'stem': 'Стебель',
+        'leaf': 'Листок',
+    }
+
+    class_color_map = {
+        'koren': (0, 140, 255),
+        'stebel': (50, 205, 50),
+        'listok': (255, 120, 0),
+        'kolos': (134, 99, 255),
+        'root': (0, 140, 255),
+        'stem': (50, 205, 50),
+        'leaf': (255, 120, 0),
+    }
+
+    for i in range(len(xyxy)):
+        x1, y1, x2, y2 = map(int, xyxy[i])
+        class_id = int(cls[i])
+        confidence = conf[i]
+
+        try:
+            if isinstance(names_dict, dict):
+                orig_name = names_dict.get(class_id, str(class_id))
+            elif isinstance(names_dict, list):
+                orig_name = names_dict[class_id] if class_id < len(names_dict) else str(class_id)
+            else:
+                orig_name = str(class_id)
+        except:
+            orig_name = str(class_id)
+
+        orig_name_lower = str(orig_name).lower()
+        ru_name = class_name_map.get(orig_name_lower, orig_name.capitalize())
+        color = class_color_map.get(orig_name_lower, (128, 128, 128))
+        color_rgb = (color[2], color[1], color[0])  # BGR to RGB
+
+        # Draw bounding box
+        if show_boxes:
+            draw.rectangle([x1, y1, x2, y2], outline=color_rgb, width=2)
+
+        # Draw label
+        label = f"{ru_name} {confidence:.2f}"
+
+        # Get text size
+        if font:
+            bbox = draw.textbbox((x1, y1), label, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+        else:
+            text_width = len(label) * 10
+            text_height = 20
+
+        # Draw background rectangle
+        draw.rectangle(
+            [x1, y1 - text_height - 8, x1 + text_width, y1],
+            fill=color_rgb
+        )
+
+        # Draw text
+        draw.text((x1, y1 - text_height - 4), label, fill=(255, 255, 255), font=font)
+
+    # Convert back to OpenCV format
+    img_result = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+    return img_result
 
 # ─────────────────────────── HELPERS ──────────────────────────────────
 
@@ -257,18 +372,15 @@ def _process_yolo(image_pil, is_arugula: bool, show_boxes: bool,
     total_length = sum(d['length'] for d in class_metrics.values())
     total_area = sum(d['area'] for d in class_metrics.values())
 
-    # Annotated image
-    if seg_results and len(seg_results) > 0 and seg_results[0].masks is not None:
-        if valid_indices and len(valid_indices) < len(masks):
-            import copy
-            fr = copy.deepcopy(seg_results)
-            fr[0].masks.data = fr[0].masks.data[valid_indices]
-            fr[0].boxes.data = fr[0].boxes.data[valid_indices]
-            annotated_img = fr[0].plot(boxes=show_boxes)
-        else:
-            annotated_img = seg_results[0].plot(boxes=show_boxes)
+    if valid_indices and len(valid_indices) < len(masks):
+        import copy
+        fr = copy.deepcopy(seg_results)
+        fr[0].masks.data = fr[0].masks.data[valid_indices]
+        fr[0].boxes.data = fr[0].boxes.data[valid_indices]
+        # Исправление: вызываем отрисовку для отфильтрованных данных
+        annotated_img = _plot_yolo_custom(fr[0], show_boxes=show_boxes)
     else:
-        annotated_img = cv2.cvtColor(np.array(image_pil), cv2.COLOR_RGB2BGR)
+        annotated_img = _plot_yolo_custom(seg_results[0], show_boxes=show_boxes)
 
     annotated_img_rgb = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)
     annotated_pil = Image.fromarray(annotated_img_rgb)
@@ -277,6 +389,7 @@ def _process_yolo(image_pil, is_arugula: bool, show_boxes: bool,
     annotated_bytes = buf.getvalue()
 
     area_bytes, bar_bytes = _build_charts(class_metrics)
+
 
     return {
         'class_metrics': class_metrics,
@@ -293,6 +406,7 @@ def _process_yolo(image_pil, is_arugula: bool, show_boxes: bool,
         'class_metrics_all': class_metrics,
         'error': None,
     }
+
 
 
 # ─────────────────────────── U-NET PATH ───────────────────────────────
