@@ -265,11 +265,11 @@
             <h1>История анализов</h1>
             <p>База данных всех проведённых сегментаций и замеров</p>
             <a href="/" class="db-link-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-            </svg>
-            ← На главную
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="15 18 9 12 15 6" />
+                </svg>
+                ← На главную
             </a>
         </header>
 
@@ -283,11 +283,12 @@
                     {% endfor %}
                 </div>
                 <a href="/" class="tab-btn" style="margin-left: auto;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 0.3rem;">
-                <polyline points="15 18 9 12 15 6" />
-                </svg>
-                На главную
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round"
+                        style="vertical-align: text-bottom; margin-right: 0.3rem;">
+                        <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                    На главную
                 </a>
                 <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                     <span style="color:var(--text-secondary); font-size:0.85rem;">{{ rows|length }} записей</span>
@@ -412,12 +413,12 @@
                 <h3>База данных пуста</h3>
                 <p>Загрузите первое изображение для анализа</p>
                 <a href="/" class="btn-primary"
-                style="display:inline-flex;margin-top:1.5rem;text-decoration:none;align-items:center;gap:0.5rem;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-                </svg>
-                Начать анализ
+                    style="display:inline-flex;margin-top:1.5rem;text-decoration:none;align-items:center;gap:0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6" />
+                    </svg>
+                    Начать анализ
                 </a>
             </div>
             {% endif %}
@@ -430,103 +431,8 @@
         <img class="modal-img" id="modalImg" src="" alt="Изображение">
     </div>
 
-    <script>
-        function openModal(src) {
-            document.getElementById('modalImg').src = src;
-            document.getElementById('imgModal').classList.add('open');
-        }
-        function closeModal(e) {
-            if (e.target === document.getElementById('imgModal')) {
-                document.getElementById('imgModal').classList.remove('open');
-            }
-        }
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') document.getElementById('imgModal').classList.remove('open');
-        });
+    <script src="/static/js/db.js"></script>
 
-        // Checkbox Sync logic
-        const galleryCheckboxes = document.querySelectorAll('.db-checkbox');
-        const tableCheckboxes = document.querySelectorAll('.db-checkbox-table');
-
-        galleryCheckboxes.forEach(cb => {
-            cb.addEventListener('change', (e) => {
-                const id = e.target.value;
-                const tableCb = document.querySelector(`.db-checkbox-table[value="${id}"]`);
-                if (tableCb) tableCb.checked = e.target.checked;
-                updateSelectAllState();
-            });
-        });
-
-        function syncCheckboxes(tableCb) {
-            const id = tableCb.value;
-            const galleryCb = document.querySelector(`.db-checkbox[value="${id}"]`);
-            if (galleryCb) galleryCb.checked = tableCb.checked;
-            updateSelectAllState();
-        }
-
-        function toggleAllCheckboxes(masterCb) {
-            const isChecked = masterCb.checked;
-            galleryCheckboxes.forEach(cb => cb.checked = isChecked);
-            tableCheckboxes.forEach(cb => cb.checked = isChecked);
-        }
-
-        function updateSelectAllState() {
-            const masterCb = document.getElementById('selectAllCheckbox');
-            if (!masterCb) return;
-            const allChecked = Array.from(tableCheckboxes).every(cb => cb.checked);
-            const someChecked = Array.from(tableCheckboxes).some(cb => cb.checked);
-            masterCb.checked = allChecked;
-            masterCb.indeterminate = someChecked && !allChecked;
-        }
-
-        // DB Export Logic
-        async function runExport(ids) {
-            if (ids.length === 0) {
-                alert("Нет данных для экспорта.");
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/export', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ analysis_ids: ids })
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `plant_db_export_${new Date().toISOString().split('T')[0]}.zip`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                } else {
-                    const error = await response.json();
-                    alert("Ошибка экспорта: " + (error.error || "Неизвестная ошибка"));
-                }
-            } catch (err) {
-                console.error(err);
-                alert("Сетевая ошибка при экспорте.");
-            }
-        }
-
-        function exportSelected() {
-            const selectedIds = Array.from(document.querySelectorAll('.db-checkbox:checked')).map(cb => parseInt(cb.value));
-            if (selectedIds.length === 0) {
-                alert("Выберите хотя бы один анализ для экспорта!");
-                return;
-            }
-            runExport(selectedIds);
-        }
-
-        function exportAllDB() {
-            const allIds = Array.from(document.querySelectorAll('.db-checkbox')).map(cb => parseInt(cb.value));
-            runExport(allIds);
-        }
-    </script>
 </body>
 
 </html>

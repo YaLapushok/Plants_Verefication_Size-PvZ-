@@ -3,5 +3,11 @@ venv/
 *.pth
 *.pt
 data/*.db
+data/*.sqlite
+Images/*.jpg
+Images/*.png
 __pycache__/
 **/__pycache__/
+.vscode/
+.idea/
+*.log

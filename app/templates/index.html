@@ -24,17 +24,30 @@
             margin-top: 1.5rem;
         }
 
-@keyframes shake-btn {
-    0%, 100% { transform: translateX(0); }
-    20%, 60% { transform: translateX(-5px); }
-    40%, 80% { transform: translateX(5px); }
-}
+        @keyframes shake-btn {
 
-.filter-btn.shake {
-    animation: shake-btn 0.4s ease-in-out;
-    border-color: #ef4444 !important;
-    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4) !important;
-}
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            20%,
+            60% {
+                transform: translateX(-5px);
+            }
+
+            40%,
+            80% {
+                transform: translateX(5px);
+            }
+        }
+
+        .filter-btn.shake {
+            animation: shake-btn 0.4s ease-in-out;
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.4) !important;
+        }
+
         /* Image modal */
         .modal-backdrop {
             display: none;
@@ -67,22 +80,22 @@
             background: none;
             border: none;
             /* Modal Zoom Controls */
-            }
+        }
 
 
-            .modal-img {
-                max-width: 90vw;
-                max-height: 90vh;
-                border-radius: 12px;
-                box-shadow: var(--shadow-md);
-                transition: transform 0.3s ease;
-                transform-origin: center center;
-                cursor: grab;
-            }
+        .modal-img {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            transition: transform 0.3s ease;
+            transform-origin: center center;
+            cursor: grab;
+        }
 
-            .modal-img:active {
-                cursor: grabbing;
-            }
+        .modal-img:active {
+            cursor: grabbing;
+        }
 
         /* Fix image black frames */
         .image-wrapper {
@@ -182,17 +195,16 @@
             }
         }
 
-        /* Grid for multiple results */
+        /* Vertical list for results */
         .results-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
         }
 
-        @media (min-width: 1400px) {
-            .results-grid.multi {
-                grid-template-columns: 1fr 1fr;
-            }
+        .results-grid.multi {
+            display: flex;
+            flex-direction: column;
         }
 
         /* Compact cards for grid mode */
@@ -345,8 +357,8 @@
                             <circle cx="8.5" cy="8.5" r="1.5"></circle>
                             <polyline points="21 15 16 10 5 21"></polyline>
                         </svg>
-                        <h2>Нет данных</h2>
-                        <p>Загрузите изображения через панель слева для начала анализа.</p>
+                        <h2>Галерея пуста</h2>
+                        <p>Загрузите изображения для начала анализа.</p>
                     </div>
                 </div>
             </section>
@@ -356,465 +368,174 @@
 
     <!-- Image Modal -->
     <div class="modal-backdrop" id="imgModal" onclick="closeModal(event)">
-    <button class="modal-close" onclick="document.getElementById('imgModal').classList.remove('open')">×</button>
-    <img class="modal-img" id="modalImg" src="" alt="Zoomed Image">
+        <button class="modal-close" onclick="document.getElementById('imgModal').classList.remove('open')">×</button>
+        <img class="modal-img" id="modalImg" src="" alt="Zoomed Image">
     </div>
 
-    <!-- JS TEMPLATE FOR A RESULT BLOCK -->
-    <template id="result-template">
-        <div class="results-container premium-card" data-analysis-id="" style="display: flex; flex-direction: column;">
-            <!-- Hero Card -->
-            <div class="result-hero"
-                style="background: none; box-shadow: none; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; border-radius: 0;">
-                <div class="plant-class">
-                    <h2 class="class-name-disp"
-                        style="font-size: 1.1rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                        <!-- name -->
-                        <span class="model-badge"></span>
-                    </h2>
-                    <div class="badges" style="flex-wrap: wrap; padding: 0.3rem 0.8rem; gap: 0.8rem;">
-                        <span class="badge badge-length length-disp" style="font-size: 0.8rem;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
-                                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                            </svg>
-                        </span>
-                        <span class="badge badge-area area-disp" style="font-size: 0.8rem;">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon">
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                            </svg>
-                        </span>
+    <!-- DETAIL / EDITOR MODAL -->
+    <div class="editor-modal" id="detailModal">
+        <div class="editor-header">
+            <div class="editor-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                <button class="btn-secondary" onclick="prevImage()"
+                    style="padding: 0.4rem 0.8rem; height: 36px;">←</button>
+                <button class="btn-secondary" onclick="closeEditor()"
+                    style="padding: 0.4rem 1.2rem; height: 36px; white-space: nowrap;">Назад</button>
+                <button class="btn-secondary" onclick="nextImage()"
+                    style="padding: 0.4rem 0.8rem; height: 36px;">→</button>
+                <span id="editor-filename"
+                    style="margin-left: 1rem; font-weight: 600; opacity: 0.9;">filename.jpg</span>
+                <span id="editor-model-badge" class="model-badge">UNET</span>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <button class="btn-secondary" onclick="closeEditor()" style="margin:0;">Отменить</button>
+                <button class="btn-primary" onclick="saveMaskChanges()" style="padding: 0.6rem 2rem; margin:0;">
+                    Сохранить и Пересчитать
+                </button>
+            </div>
+        </div>
+
+        <div class="editor-content">
+            <!-- Left: Interactive Canvas -->
+            <div
+                style="display: flex; flex-direction: column; flex-grow: 1; gap: 0.8rem; overflow: hidden; height: 100%;">
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
+                    <strong>Инструкция:</strong> Закрасьте кистью недостающие участки (выберите нужный класс справа)
+                    или удалите лишние ластиком. Это позволит нейросети точнее определить границы и
+                    <strong>пересчитать площадь/длину</strong> с учетом ваших правок.<br>
+                    Используйте <strong>Ctrl + Колёсико мыши</strong> для масштабирования (zoom). Прокрутка без Ctrl
+                    двигает картинку.
+                </p>
+                <div class="canvas-container" id="canvas-container"
+                    style="flex-grow: 1; overflow: auto; position: relative; background: #1a1a1a; display: flex; align-items: center; justify-content: center;">
+                    <div id="canvas-wrapper"
+                        style="position: relative; transform-origin: 0 0; transition: transform 0.1s ease-out; cursor: crosshair;">
+                        <!-- Layer 0: Original Photo (Bottom) -->
+                        <canvas id="bg-canvas" style="display: block;"></canvas>
+                        <!-- Layer 1: AI Segmentation Overlay (Middle) -->
+                        <canvas id="ai-canvas"
+                            style="position: absolute; top:0; left:0; pointer-events: none; opacity: 0.7;"></canvas>
+                        <!-- Layer 2: Manual Mask (Top, where user draws) -->
+                        <canvas id="mask-canvas" style="position: absolute; top:0; left:0;"></canvas>
                     </div>
                 </div>
             </div>
 
-            <div
-                style="padding: 0.5rem 1rem 1rem 1rem; flex-grow: 1; display: flex; flex-direction: column; gap: 1rem;">
+            <!-- Right: Tools -->
+            <div class="editor-sidebar">
+                <div class="tool-group">
+                    <h3 style="margin-bottom: 1rem; font-size: 1rem;">Инструменты</h3>
+                    <button id="tool-brush" class="tool-btn active" onclick="setTool('brush')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M12 19l7-7 3 3-7 7-3-3zM18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
+                        </svg>
+                        Кисть
+                    </button>
+                    <button id="tool-eraser" class="tool-btn" onclick="setTool('eraser')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z" />
+                            <path d="M17 17L7 7" />
+                        </svg>
+                        Ластик
+                    </button>
 
-                <!-- Explicit 2-column internal layout: Left (Image) | Right (Scrollable Stats) -->
-                <div class="cards-layout"
-                     style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; height: auto;">
-
-                    <!-- LEFT COLUMN: Segmentation Image -->
-                    <div class="visual-card"
-                         style="background: var(--surface-light); border-radius: 12px; padding: 0.75rem; height: auto; display: flex; flex-direction: column;">
-                        <div
-                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem;">
-                            <h3 style="margin: 0; font-size: 0.95rem;">Сегментация</h3>
-                            <label class="custom-checkbox"
-                                style="padding: 0.1rem 0.4rem; font-size: 0.7rem; margin: 0;">
-                                <input type="checkbox" class="post-boxes-toggle" onchange="togglePostBoxes(this)">
-                                <span>Рамки</span>
-                            </label>
-                        </div>
-                        <div class="image-wrapper"
-                            style="border-radius: 8px; overflow: hidden; background: #000 !important; display: flex; justify-content: center; flex-grow: 1;">
-                            <img src="" alt="Сегментация" class="result-image main-img" onclick="openModal(this.src)"
-                                style="max-height: 100%; width: auto; object-fit: contain;">
-                        </div>
+                    <div style="margin-top: 1.5rem;">
+                        <label style="font-size: 0.85rem; color: var(--text-secondary);">Размер: <span
+                                id="brush-size-val">20</span>px</label>
+                        <input type="range" id="brush-size" class="brush-size-slider" min="5" max="100" value="20"
+                            oninput="updateBrushSize(this.value)">
                     </div>
+                </div>
 
-                    <!-- RIGHT COLUMN: Scrollable Stats (Filters -> Length Bar -> Area Bar -> Metrics) -->
-                    <div class="stats-column"
-                         style="height: auto; overflow-y: visible; display: flex; flex-direction: column; gap: 1rem; padding-right: 0.5rem;">
-
-                        <!-- Filters -->
-                        <div class="filter-controls"
-                            style="display:none; background: var(--surface-light); border-radius: 12px; padding: 0.75rem;">
-                            <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Отображение классов</h3>
-                            <div class="filter-buttons" style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                <div class="tool-group" id="class-tool-group">
+                    <h3 style="margin-bottom: 1rem; font-size: 1rem;">Класс (выбор цвета)</h3>
+                    <div style="margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">
+                        Черный (Авто) = Маска для AI<br>Цветной = Ручная разметка
+                    </div>
+                    <div id="editor-class-palette" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button class="tool-btn class-pick-btn active" style="border-left: 8px solid black;"
+                            onclick="pickClassColor('black', this)">
+                            <div style="display:flex; flex-direction:column; align-items:flex-start;">
+                                <span style="font-size:0.7rem; opacity:0.7; text-transform:uppercase;">Кисть:</span>
+                                <strong>ОЧИСТИТЬ (AI МАСКА)</strong>
                             </div>
-                        </div>
-<!-- U-Net Color Legend -->
-<div class="unet-legend" style="display:none; background: var(--surface-light); border-radius: 12px; padding: 0.75rem;">
-    <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Легенда классов</h3>
-    <div class="legend-items" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
-</div>
-                        <!-- Length Bar Chart -->
-                        <div class="visual-card chart-card bar-card"
-                            style="display:none; background: var(--surface-light); border-radius: 12px; padding: 0.75rem;">
-                            <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Длина (мм)</h3>
-                            <div class="image-wrapper"
-                                style="border-radius: 8px; overflow: hidden; display: flex; justify-content: center; background: none; border: none; box-shadow: none;">
-                                <img src="" alt="Статистика длин" class="result-chart bar-img"
-                                    onclick="openModal(this.src)"
-                                    style="max-height: 200px; width: auto; object-fit: contain;">
-                            </div>
-                        </div>
+                        </button>
+                        <!-- Model classes injected by JS -->
+                    </div>
+                </div>
 
-                        <!-- Area Bar Chart -->
-                        <div class="visual-card chart-card pie-card"
-                            style="display:none; background: var(--surface-light); border-radius: 12px; padding: 0.75rem;">
-                            <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Площадь (мм²)</h3>
-                            <div class="image-wrapper"
-                                style="border-radius: 8px; overflow: hidden; display: flex; justify-content: center; background: none; border: none; box-shadow: none;">
-                                <img src="" alt="Статистика площадей" class="result-chart pie-img area-img"
-                                    onclick="openModal(this.src)"
-                                    style="max-height: 200px; width: auto; object-fit: contain;">
-                            </div>
-                        </div>
+                <div class="tool-group">
+                    <h3 style="margin-bottom: 1rem; font-size: 1rem;">Видимость</h3>
+                    <div id="editor-visibility-toggles" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <!-- Dynamic toggles injected by JS -->
+                    </div>
+                    <label
+                        style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1rem; font-size: 0.9rem; cursor: pointer; padding: 0.5rem;">
+                        <input type="checkbox" id="editor-show-boxes" onchange="updateEditorView()" checked>
+                        Показывать рамки
+                    </label>
+                </div>
 
-                        <!-- Metrics Grid -->
-                        <div class="metrics-card filter-card"
-                            style="background: var(--surface-light); border-radius: 12px; padding: 0.75rem; margin: 0; box-shadow: none;">
-                            <h3 style="margin: 0 0 0.5rem 0; font-size: 0.95rem;">Подробные метрики</h3>
-                            <div class="metrics-grid" style="grid-template-columns: 1fr; gap: 0.5rem;">
-                            </div>
-                        </div>
-
+                <div class="tool-group">
+                    <h3 style="margin-bottom: 1rem; font-size: 1rem;">Метрики</h3>
+                    <div id="editor-metrics" class="metrics-grid">
+                        <!-- JS injected -->
                     </div>
                 </div>
             </div>
         </div>
-    </template>
 
-    <script>
-        // ==================== STATE ====================
-        let processedAnalysisIds = [];
+        <!-- JS TEMPLATE FOR A RESULT BLOCK (VERTICAL LIST) -->
+        <template id="result-template">
+            <div class="results-container premium-card" data-analysis-id="">
+                <div class="cards-layout" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <div style="display: flex; gap: 1.5rem; align-items: flex-start;">
+                        <div class="image-wrapper"
+                            style="border-radius: 12px; width: 50%; min-width: 400px; height: 400px; background: #000; position: relative; cursor: pointer;"
+                            onclick="openEditor(this.closest('.results-container').dataset.analysisId)">
+                            <img src="" alt="Результат" class="result-image main-img"
+                                style="height: 100%; width: 100%; object-fit: contain;">
+                            <div class="view-hint"
+                                style="position: absolute; bottom: 12px; right: 12px; background: rgba(0,0,0,0.7); color: white; padding: 6px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 500; border: 1px solid rgba(255,255,255,0.1);">
+                                🔧 Изменить маску</div>
+                        </div>
 
+                        <div style="flex-grow: 1;">
+                            <div
+                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                                <h3 class="class-name-disp" style="font-size: 1.5rem; margin: 0;"></h3>
+                            </div>
 
-        // ==================== UI HELPERS ====================
-        function openModal(src) {
-            document.getElementById('modalImg').src = src;
-            document.getElementById('imgModal').classList.add('open');
-        }
-        function closeModal(e) {
-            if (e.target === document.getElementById('imgModal')) {
-                document.getElementById('imgModal').classList.remove('open');
-            }
-        }
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') document.getElementById('imgModal').classList.remove('open');
-        });
+                            <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+                                <div class="badge-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <span
+                                        style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase;">Общая
+                                        Длина</span>
+                                    <span class="badge badge-length length-disp"
+                                        style="font-size: 1.4rem; background: rgba(110,231,183,0.1); padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(110,231,183,0.2); font-weight: 700;"></span>
+                                </div>
+                                <div class="badge-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    <span
+                                        style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase;">Общая
+                                        Площадь</span>
+                                    <span class="badge badge-area area-disp"
+                                        style="font-size: 1.4rem; background: rgba(0,230,118,0.1); padding: 12px 24px; border-radius: 12px; border: 1px solid rgba(0,230,118,0.2); font-weight: 700;"></span>
+                                </div>
+                            </div>
 
-        // ==================== DRAG & DROP / UPLOAD LOGIC ====================
-        const dropZoneElement = document.getElementById("drop-zone");
-        const inputElement = document.getElementById("file-input");
-        const loadingOverlay = document.getElementById("loading-overlay");
-        const loadingText = document.getElementById("loading-text");
-        const gallery = document.getElementById("results-gallery");
-        const emptyState = document.getElementById("empty-state");
-        const batchActions = document.getElementById("batch-actions");
-
-        if (dropZoneElement) {
-            dropZoneElement.addEventListener("click", e => {
-                if (e.target === dropZoneElement || e.target.closest('.upload-icon-wrapper') || e.target.closest('.drop-zone__prompt')) {
-                    inputElement.click();
-                }
-            });
-
-            inputElement.addEventListener("change", e => {
-                if (inputElement.files.length) {
-                    processFiles(inputElement.files);
-                }
-            });
-
-            dropZoneElement.addEventListener("dragover", e => { e.preventDefault(); dropZoneElement.classList.add("drop-zone--over"); });
-            ["dragleave", "dragend"].forEach(type => { dropZoneElement.addEventListener(type, e => { dropZoneElement.classList.remove("drop-zone--over"); }); });
-            dropZoneElement.addEventListener("drop", e => {
-                e.preventDefault();
-                if (e.dataTransfer.files.length) {
-                    processFiles(e.dataTransfer.files);
-                }
-                dropZoneElement.classList.remove("drop-zone--over");
-            });
-        }
-
-        async function processFiles(files) {
-            if (files.length === 0) return;
-
-            // Hide empty state
-            if (emptyState) emptyState.style.display = 'none';
-
-            // Show loading
-            loadingOverlay.style.display = 'flex';
-            setTimeout(() => { loadingOverlay.classList.add('active'); }, 10);
-
-            const segModel = document.querySelector('input[name="seg_model"]:checked').value;
-            const showBoxes = true;
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                loadingText.innerText = `Анализ: ${file.name} (${i + 1}/${files.length})...`;
-
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('seg_model', segModel);
-                formData.append('show_boxes', showBoxes ? 'on' : 'off');
-
-                try {
-                    const response = await fetch('/api/analyze', { method: 'POST', body: formData });
-                    const data = await response.json();
-
-                    if (data.success) {
-                        renderResult(data, showBoxes);
-                        processedAnalysisIds.push(data.analysis_id);
-                    } else {
-                        alert(`Ошибка файла ${file.name}: ${data.error}`);
-                    }
-                } catch (error) {
-                    console.error(error);
-                    alert(`Сетевая ошибка при загрузке ${file.name}`);
-                }
-            }
-
-            // Hide loading overlay
-            loadingOverlay.classList.remove('active');
-            setTimeout(() => { loadingOverlay.style.display = 'none'; }, 400);
-
-            // Update grid layout based on number of items
-            if (processedAnalysisIds.length > 1) {
-                gallery.classList.add('multi');
-            }
-
-            // Reset input
-            inputElement.value = '';
-
-            // Show export button
-            if (processedAnalysisIds.length > 0) {
-                batchActions.style.display = 'flex';
-            }
-
-            // Scroll to top of results
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // ==================== RENDER RESULT ====================
-        function renderResult(data, initialShowBoxes) {
-            const template = document.getElementById('result-template');
-            const clone = template.content.cloneNode(true);
-            const container = clone.querySelector('.results-container');
-            container.dataset.analysisId = data.analysis_id;
-
-            // Hero
-            const nameDisp = clone.querySelector('.class-name-disp');
-            const badge = clone.querySelector('.model-badge');
-            badge.className = `model-badge model-badge--${data.seg_model}`;
-            badge.innerText = data.seg_model.toUpperCase();
-            nameDisp.innerHTML = `<span style="word-break: break-all;">${data.class_name || data.original_filename}</span> ` + badge.outerHTML;
-            clone.querySelector('.length-disp').innerHTML += ` Длина: ${data.total_length} мм`;
-            clone.querySelector('.area-disp').innerHTML += ` Площадь: ${data.total_area} мм²`;
-
-            // Checkbox sync
-            const postBoxToggle = clone.querySelector('.post-boxes-toggle');
-            postBoxToggle.checked = initialShowBoxes;
-
-            // Images
-            clone.querySelector('.main-img').src = `data:image/jpeg;base64,${data.annotated_b64}`;
-
-            if (data.chart_b64) {
-                clone.querySelector('.pie-card').style.display = 'flex';
-                clone.querySelector('.area-img').src = `data:image/jpeg;base64,${data.chart_b64}`;
-            }
-            if (data.bar_chart_b64) {
-                clone.querySelector('.bar-card').style.display = 'flex';
-                clone.querySelector('.bar-img').src = `data:image/jpeg;base64,${data.bar_chart_b64}`;
-            }
-
-            // Metrics & Filters
-            const filterControls = clone.querySelector('.filter-controls');
-            const filterButtons = clone.querySelector('.filter-buttons');
-            const metricsGrid = clone.querySelector('.metrics-grid');
-
-            if (data.seg_model === 'yolo' || data.seg_model === 'unet') {
-                filterControls.style.display = 'block';
-            }
-
-            // Сортируем классы в фиксированном порядке для консистентности
-const classOrder = ['корень', 'стебель', 'листок', 'колос'];
-// Фиксированный порядок классов для кнопок
-const allClasses = Object.keys(data.class_metrics).sort((a, b) => {
-    const idxA = classOrder.indexOf(a.toLowerCase());
-    const idxB = classOrder.indexOf(b.toLowerCase());
-    return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
-});
-container.dataset.activeClasses = JSON.stringify(allClasses);
-
-            // --- U-Net Color Legend ---
-const legendContainer = clone.querySelector('.unet-legend');
-const legendItems = clone.querySelector('.legend-items');
-if (data.class_colors && Object.keys(data.class_colors).length > 0) {
-    legendContainer.style.display = 'block';
-    for (const [className, color] of Object.entries(data.class_colors)) {
-        const item = document.createElement('div');
-        item.style.display = 'flex';
-        item.style.alignItems = 'center';
-        item.style.gap = '0.5rem';
-        item.style.fontSize = '0.85rem';
-        item.style.color = 'var(--text-secondary)';
-
-        const colorBox = document.createElement('div');
-        colorBox.style.width = '16px';
-        colorBox.style.height = '16px';
-        colorBox.style.backgroundColor = color;
-        colorBox.style.borderRadius = '4px';
-        colorBox.style.border = '1px solid rgba(255,255,255,0.2)';
-
-        const label = document.createElement('span');
-        label.textContent = className.charAt(0).toUpperCase() + className.slice(1);
-
-        item.appendChild(colorBox);
-        item.appendChild(label);
-        legendItems.appendChild(item);
-    }
-}
-
-            for (const [c_name, metrics] of Object.entries(data.class_metrics)) {
-                // Add Filter button
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.className = 'filter-btn active';
-                btn.dataset.class = c_name;
-                btn.dataset.classNormalized = c_name.toLowerCase();  // для надёжного сравнения
-                btn.onclick = () => toggleClassFilter(container, c_name.toLowerCase(), btn);
-
-                const displayName = c_name.charAt(0).toUpperCase() + c_name.slice(1);
-                btn.innerHTML = `<span class="filter-btn-icon">👁</span> <span class="filter-btn-label">${displayName}</span> <span class="filter-btn-count">${metrics.count} шт.</span>`;
-                filterButtons.appendChild(btn);
-
-                // Add Metric Grid Item
-                const mItem = document.createElement('div');
-                mItem.className = 'metric-item';
-                mItem.id = `metric-${data.analysis_id}-${c_name.toLowerCase()}`;
-                mItem.innerHTML = `
-                    <h4 class="metric-title">${displayName} ${metrics.count > 1 ? `<span class="count-tag">${metrics.count} шт.</span>` : ''}</h4>
-                    <div class="metric-stats">
-                        <p>Площадь <span class="stat-value">${parseFloat(metrics.area || 0).toFixed(2)} мм²</span></p>
-                        <p>Длина <span class="stat-value">${parseFloat(metrics.length || 0).toFixed(2)} мм</span></p>
+                            <div style="margin-top: 2rem;">
+                                <p style="color: var(--text-secondary); font-size: 0.9rem;">Нажмите на изображение,
+                                    чтобы открыть детальный обзор и инструменты разметки.</p>
+                            </div>
+                        </div>
                     </div>
-                `;
-                metricsGrid.appendChild(mItem);
-            }
+                </div>
+            </div>
+        </template>
 
-            // Prepend new results
-            gallery.prepend(clone);
-        }
+        <script src="/static/js/main.js"></script>
 
-        // ==================== DYNAMIC FILTERING ====================
-        async function toggleClassFilter(container, className, btnEl) {
-    let active = JSON.parse(container.dataset.activeClasses);
-    // Нормализуем имя класса для сравнения
-const normalizedClassName = className.toLowerCase();
-const normalizedActive = active.map(c => c.toLowerCase());
-    const metricItem = container.querySelector(`#metric-${container.dataset.analysisId}-${className}`);
-
-    // Если пытаемся снять галочку
-    if (normalizedActive.includes(normalizedClassName)) {
-        // Запрещаем снять последнюю галочку — трясём кнопку
-        if (active.length === 1) {
-            btnEl.classList.add('shake');
-            setTimeout(() => btnEl.classList.remove('shake'), 400);
-            return; // Прерываем без alert
-        }
-
-        active = active.filter(c => c.toLowerCase() !== normalizedClassName);
-        btnEl.classList.remove('active');
-        if (metricItem) { metricItem.style.opacity = '0.3'; metricItem.style.filter = 'grayscale(100%)'; }
-    } else {
-    if (!normalizedActive.includes(normalizedClassName)) {
-        active.push(className);
-    }
-    btnEl.classList.add('active');
-        if (metricItem) { metricItem.style.opacity = '1'; metricItem.style.filter = 'none'; }
-    }
-    container.dataset.activeClasses = JSON.stringify(active);
-
-    await fetchUpdate(container);
-}
-
-        async function togglePostBoxes(checkbox) {
-            const container = checkbox.closest('.results-container');
-            await fetchUpdate(container, checkbox.checked);
-        }
-
-        async function fetchUpdate(container, overrideShowBoxes = null, classesOverride = undefined) {
-    try {
-        const analysisId = container.dataset.analysisId;
-
-        // Если classesOverride не передан — берём из dataset
-        const active = classesOverride !== undefined
-            ? classesOverride
-            : JSON.parse(container.dataset.activeClasses);
-
-        const postBoxToggle = container.querySelector('.post-boxes-toggle');
-        const showBoxes = overrideShowBoxes !== null ? overrideShowBoxes : postBoxToggle.checked;
-
-        const img = container.querySelector('.main-img');
-        img.style.opacity = '0.5';
-
-        const response = await fetch('/api/filter', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-    analysis_id: analysisId,
-    selected_classes: active.map(c => c.toLowerCase()),
-    show_boxes: showBoxes
-})
-        });
-
-                const data = await response.json();
-                if (data.success && data.annotated_b64) {
-                    img.src = `data:image/jpeg;base64,${data.annotated_b64}`;
-                    img.onload = () => { img.style.opacity = '1'; };
-
-                    const areaBadge = container.querySelector('.badge-area');
-                    if (areaBadge && data.total_area) {
-                        areaBadge.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /></svg> Площадь: ${data.total_area} мм²`;
-                    }
-                    const lengthBadge = container.querySelector('.badge-length');
-                    if (lengthBadge && data.total_length) {
-                        lengthBadge.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="badge-icon"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg> Длина: ${data.total_length} мм`;
-                    }
-                } else {
-                    img.style.opacity = '1';
-                }
-            } catch (err) {
-                console.error(err);
-                container.querySelector('.main-img').style.opacity = '1';
-            }
-        }
-
-        // ==================== EXPORT BATCH ====================
-        async function exportAll() {
-            if (processedAnalysisIds.length === 0) return;
-
-            const btn = document.querySelector('#batch-actions .btn-primary');
-            const originalText = btn.innerHTML;
-            btn.innerText = 'Генерация архива...';
-            btn.disabled = true;
-
-            try {
-                const response = await fetch('/api/export', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ analysis_ids: processedAnalysisIds })
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = 'analysis_export.zip';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                } else {
-                    const err = await response.json();
-                    alert(`Ошибка при экспорте: ${err.error}`);
-                }
-            } catch (err) {
-                console.error(err);
-                alert("Ошибка сети при скачивании");
-            } finally {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-        }
-
-    </script>
 </body>
 
 </html>
