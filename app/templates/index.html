@@ -621,8 +621,15 @@
                 filterControls.style.display = 'block';
             }
 
-            const allClasses = Object.keys(data.class_metrics);
-            container.dataset.activeClasses = JSON.stringify(allClasses);
+            // Сортируем классы в фиксированном порядке для консистентности
+const classOrder = ['корень', 'стебель', 'листок', 'колос'];
+// Фиксированный порядок классов для кнопок
+const allClasses = Object.keys(data.class_metrics).sort((a, b) => {
+    const idxA = classOrder.indexOf(a.toLowerCase());
+    const idxB = classOrder.indexOf(b.toLowerCase());
+    return (idxA === -1 ? 999 : idxA) - (idxB === -1 ? 999 : idxB);
+});
+container.dataset.activeClasses = JSON.stringify(allClasses);
 
             // --- U-Net Color Legend ---
 const legendContainer = clone.querySelector('.unet-legend');
