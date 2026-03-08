@@ -31,7 +31,7 @@
 
 ### 2. Установка
 ```bash
-git clone <repository_url>
+git clone https://github.com/YaLapushok/Plants_Verefication_Size-PvZ-
 cd Plants_Verefication_Size-PvZ-
 
 # Создание и активация виртуального окружения
