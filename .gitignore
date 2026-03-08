@@ -11,3 +11,9 @@ __pycache__/
 .vscode/
 .idea/
 *.log
+*.exe
+*.zip
+*.7z
+*.rar
+downloads/
+temp/

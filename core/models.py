@@ -45,7 +45,7 @@ try:
         )
 
     _UNET_ARUGULA_PATH = os.path.join(MODELS_DIR, 'U-Net', 'rugola_v3_best.pth')
-    _UNET_WHEAT_PATH = os.path.join(MODELS_DIR, 'U-Net', 'wheat_4classes.pth')
+    _UNET_WHEAT_PATH = os.path.join(MODELS_DIR, 'U-Net', 'пшеница_4класса.pth')
 
     def _load_unet(path):
         if not os.path.exists(path):
