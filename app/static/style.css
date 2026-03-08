@@ -1025,7 +1025,133 @@ header p {
     transform: translateY(-2px);
 }
 
-/* primary variable shorthand */
 :root {
     --primary: var(--primary-color);
+}
+
+/* ==================== MOBILE RESPONSIVENESS ==================== */
+@media (max-width: 1024px) {
+    .app-layout {
+        flex-direction: column;
+    }
+
+    .app-sidebar {
+        width: 100%;
+        position: static;
+        height: auto;
+        max-height: none;
+    }
+
+    .drop-zone {
+        height: 120px;
+    }
+
+    .settings-bar {
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 768px) {
+
+    .container,
+    .app-container {
+        padding: 1rem;
+    }
+
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .header-left {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+
+    .results-grid {
+        gap: 1.5rem;
+    }
+
+    .results-container.compact .cards-layout {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cards-layout>div {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .image-wrapper {
+        width: 100% !important;
+        min-width: 0 !important;
+        height: 300px !important;
+    }
+
+    .charts-column {
+        flex-direction: column;
+    }
+
+    /* Editor Modal Mobile */
+    .editor-content {
+        grid-template-columns: 1fr;
+        grid-template-rows: 60vh auto;
+        height: auto;
+        overflow-y: auto;
+        gap: 1rem;
+    }
+
+    .editor-modal {
+        padding: 0.5rem;
+    }
+
+    .canvas-container {
+        height: 100%;
+        min-height: 250px;
+    }
+
+    .editor-sidebar {
+        gap: 0.8rem;
+    }
+
+    .tool-group {
+        padding: 1rem;
+    }
+
+    .tool-btn {
+        padding: 1rem;
+        font-size: 1rem;
+        justify-content: center;
+    }
+
+    .editor-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .editor-header>div {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .editor-title {
+        font-size: 1.1rem;
+        flex-wrap: wrap;
+    }
+
+    .editor-header .btn-secondary,
+    .editor-header .btn-primary {
+        padding: 0.8rem 1rem;
+        font-size: 0.95rem;
+        flex: 1;
+        text-align: center;
+        margin: 0;
+    }
 }

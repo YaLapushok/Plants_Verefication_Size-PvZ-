@@ -15,11 +15,12 @@ const activeLayers = {
 const editor = {
     id: null,
     zoom: 1,
+    minZoom: 0.1,
     isDrawing: false,
     isPanning: false,
     lastX: 0, lastY: 0,
     tool: 'brush',
-    color: 'black',
+    color: '#000000',
     history: [],
 
     // Elements
@@ -58,20 +59,27 @@ const editor = {
                 this.handleZoom(e);
             }
         };
+
+        // Undo Shortcut (Ctrl+Z)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                const modal = document.getElementById('detailModal');
+                if (modal && modal.classList.contains('open')) {
+                    this.undo();
+                }
+            }
+        });
     },
 
     handleZoom(e) {
         const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        const nextZoom = Math.min(Math.max(0.1, this.zoom * delta), 10);
+        const nextZoom = this.zoom * delta;
+
+        // Clamp zoom between minZoom and 10x
+        this.zoom = Math.min(Math.max(nextZoom, this.minZoom), 10);
 
         const containerRect = this.container.getBoundingClientRect();
-        const offsetX = e.clientX - containerRect.left;
-        const offsetY = e.clientY - containerRect.top;
-
-        const worldX = (this.container.scrollLeft + offsetX) / this.zoom;
-        const worldY = (this.container.scrollTop + offsetY) / this.zoom;
-
-        this.zoom = nextZoom;
 
         const newWidth = this.bg.width * this.zoom;
         const newHeight = this.bg.height * this.zoom;
@@ -91,14 +99,14 @@ const editor = {
             this.wrapper.style.cursor = 'grabbing';
         } else if (e.button === 0) {
             this.isDrawing = true;
+            this.applyBrushSettings();
             this.maskCtx.beginPath();
             const pos = this.getCanvasPos(e);
-            this.applyBrushSettings();
             this.maskCtx.moveTo(pos.x, pos.y);
-            if (this.tool === 'brush') {
-                this.maskCtx.lineTo(pos.x, pos.y);
-                this.maskCtx.stroke();
-            }
+            this.maskCtx.lineTo(pos.x, pos.y);
+            this.maskCtx.stroke();
+            this.maskCtx.beginPath(); // Start new path for smooth continuous lines
+            this.maskCtx.moveTo(pos.x, pos.y);
         }
     },
 
@@ -142,14 +150,14 @@ const editor = {
         this.maskCtx.lineCap = 'round';
         this.maskCtx.lineJoin = 'round';
 
-        if (this.tool === 'brush') {
-            this.maskCtx.globalCompositeOperation = 'source-over';
-            this.maskCtx.strokeStyle = this.color;
-        } else if (this.tool === 'eraser') {
+        if (this.tool === 'eraser') {
             this.maskCtx.globalCompositeOperation = 'destination-out';
+            this.maskCtx.strokeStyle = 'rgba(0,0,0,1)';
+        } else {
+            this.maskCtx.globalCompositeOperation = 'source-over';
+            this.maskCtx.strokeStyle = '#000000'; // Always black brush
         }
     },
-
     saveHistory() {
         this.history.push(this.mask.toDataURL());
         if (this.history.length > 20) this.history.shift();
@@ -197,32 +205,57 @@ function openEditor(id) {
 }
 
 function loadDataIntoEditor(data) {
-    editor.zoom = 1;
-    editor.wrapper.style.transform = `scale(1)`;
-
     const img = new Image();
     img.onload = () => {
         const w = img.width;
         const h = img.height;
+
+        // Calculate minZoom to fit image in container
+        const contW = editor.container.clientWidth || 800;
+        const contH = editor.container.clientHeight || 600;
+
+        // Slightly padding so it doesn't touch the absolute edges
+        const fitScaleX = (contW - 40) / w;
+        const fitScaleY = (contH - 40) / h;
+
+        // Minimum zoom is enough to see the whole image
+        editor.minZoom = Math.min(fitScaleX, fitScaleY, 1);
+        editor.zoom = editor.minZoom;
+
+        editor.wrapper.style.transform = `scale(${editor.zoom})`;
+
         [editor.bg, editor.mask, editor.ai].forEach(c => {
             c.width = w;
             c.height = h;
             c.style.width = w + 'px';
             c.style.height = h + 'px';
         });
+
         editor.wrapper.style.width = (w * editor.zoom) + 'px';
         editor.wrapper.style.height = (h * editor.zoom) + 'px';
+
+        // Draw the original image on the background layer
         editor.bgCtx.drawImage(img, 0, 0);
         editor.maskCtx.clearRect(0, 0, w, h);
         editor.history = [];
         editor.saveHistory();
 
+        // Draw the AI overlay directly from known annotated data
+        // No redundant API call needed on load
+        const aiImg = new Image();
+        aiImg.onload = () => {
+            editor.aiCtx.clearRect(0, 0, editor.ai.width, editor.ai.height);
+            editor.aiCtx.drawImage(aiImg, 0, 0);
+        }
+        aiImg.src = `data:image/jpeg;base64,${data.annotated_b64}`;
+
         setTimeout(() => {
-            editor.container.scrollLeft = (w - editor.container.clientWidth) / 2;
-            editor.container.scrollTop = (h - editor.container.clientHeight) / 2;
+            const scaledW = w * editor.zoom;
+            const scaledH = h * editor.zoom;
+            editor.container.scrollLeft = Math.max(0, (scaledW - editor.container.clientWidth) / 2);
+            editor.container.scrollTop = Math.max(0, (scaledH - editor.container.clientHeight) / 2);
         }, 50);
 
-        updateEditorView();
     };
     img.src = `data:image/jpeg;base64,${data.original_b64 || data.annotated_b64}`;
 }
@@ -240,36 +273,8 @@ function setTool(t) {
 }
 
 function renderClassPalette(data) {
-    const palette = document.getElementById('editor-class-palette');
-    if (!palette) return;
-
-    palette.innerHTML = `
-        <button class="tool-btn class-pick-btn ${editor.color === 'black' ? 'active' : ''}" 
-                style="border-left: 8px solid black;" 
-                onclick="pickClassColor('black', this)">
-            <div style="display:flex; flex-direction:column; align-items:flex-start;">
-                <span style="font-size:0.75rem; opacity:0.8;">Исправление:</span>
-                <strong>УДАЛИТЬ ДЛЯ AI (ЧЕРНЫЙ)</strong>
-            </div>
-        </button>
-    `;
-
-    if (data.class_colors) {
-        Object.entries(data.class_colors).forEach(([name, color]) => {
-            const btn = document.createElement('button');
-            btn.className = `tool-btn class-pick-btn ${editor.color === color ? 'active' : ''}`;
-            btn.style.borderLeft = `8px solid ${color}`;
-            btn.innerHTML = `
-                <div style="display:flex; flex-direction:column; align-items:flex-start;">
-                    <span style="font-size:0.75rem; opacity:0.8;">Разметка:</span>
-                    <strong style="text-transform: capitalize;">${name}</strong>
-                </div>
-            `;
-            btn.onclick = () => pickClassColor(color, btn);
-            palette.appendChild(btn);
-        });
-    }
-
+    // Left intentionally blank as per UX redesign requirements.
+    // The visual class picker is removed. The brush defaults to black for erasing network predictions
     renderVisibilityToggles(data);
 }
 
@@ -423,7 +428,7 @@ function prevImage() {
 function renderResult(data) {
     const template = document.getElementById('result-template');
     if (!template) return;
-    
+
     const clone = template.content.cloneNode(true);
     const container = clone.querySelector('.results-container');
     container.dataset.analysisId = data.analysis_id;

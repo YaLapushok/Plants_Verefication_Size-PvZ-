@@ -398,12 +398,13 @@
             <!-- Left: Interactive Canvas -->
             <div
                 style="display: flex; flex-direction: column; flex-grow: 1; gap: 0.8rem; overflow: hidden; height: 100%;">
-                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.4;">
-                    <strong>Инструкция:</strong> Закрасьте кистью недостающие участки (выберите нужный класс справа)
-                    или удалите лишние ластиком. Это позволит нейросети точнее определить границы и
-                    <strong>пересчитать площадь/длину</strong> с учетом ваших правок.<br>
-                    Используйте <strong>Ctrl + Колёсико мыши</strong> для масштабирования (zoom). Прокрутка без Ctrl
-                    двигает картинку.
+                <p
+                    style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.4; background: rgba(0,0,0,0.2); padding: 0.8rem; border-radius: 8px;">
+                    <strong>Инструкция:</strong> Закрасьте кистью места, где нейросеть ошиблась с границами.
+                    <strong>Кисть закрашивает черным</strong> — это означает для ИИ: "здесь ничего нет". Обычный
+                    <strong>Ластик</strong> стирает только вашу ручную черную разметку.<br>
+                    Горячие клавиши: <strong>Ctrl + Z</strong> (Отмена мазка), <strong>Ctrl + Колёсико мыши</strong>
+                    (Масштаб). Прокрутка без Ctrl двигает картинку.
                 </p>
                 <div class="canvas-container" id="canvas-container"
                     style="flex-grow: 1; overflow: auto; position: relative; background: #1a1a1a; display: flex; align-items: center; justify-content: center;">
@@ -448,22 +449,7 @@
                     </div>
                 </div>
 
-                <div class="tool-group" id="class-tool-group">
-                    <h3 style="margin-bottom: 1rem; font-size: 1rem;">Класс (выбор цвета)</h3>
-                    <div style="margin-bottom: 0.5rem; font-size: 0.8rem; color: var(--text-secondary);">
-                        Черный (Авто) = Маска для AI<br>Цветной = Ручная разметка
-                    </div>
-                    <div id="editor-class-palette" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <button class="tool-btn class-pick-btn active" style="border-left: 8px solid black;"
-                            onclick="pickClassColor('black', this)">
-                            <div style="display:flex; flex-direction:column; align-items:flex-start;">
-                                <span style="font-size:0.7rem; opacity:0.7; text-transform:uppercase;">Кисть:</span>
-                                <strong>ОЧИСТИТЬ (AI МАСКА)</strong>
-                            </div>
-                        </button>
-                        <!-- Model classes injected by JS -->
-                    </div>
-                </div>
+                <!-- The class selector was removed according to requirements -->
 
                 <div class="tool-group">
                     <h3 style="margin-bottom: 1rem; font-size: 1rem;">Видимость</h3>
