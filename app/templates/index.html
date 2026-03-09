@@ -294,25 +294,23 @@
 
                     <div class="settings-bar"
                         style="flex-direction: column; align-items: stretch; gap: 1rem; margin-bottom: 0;">
-                        <!-- Model selector -->
+                        <!-- Model selector (Dropdown) -->
                         <div class="model-selector" style="width: 100%;">
                             <span class="model-selector__label">Модель:</span>
-                            <div style="display:flex; flex-direction:column; gap:0.5rem; flex:1;">
-                                <label class="model-radio">
-                                    <input type="radio" name="seg_model" value="unet" checked>
-                                    <span class="model-radio__pill"
-                                        style="width: 100%; text-align: center;">U-Net</span>
-                                </label>
-                                <label class="model-radio">
-                                    <input type="radio" name="seg_model" value="yolo">
-                                    <span class="model-radio__pill" style="width: 100%; text-align: center;">YOLO</span>
-                                </label>
-                            </div>
+                            <select name="seg_model" id="seg-model-select" class="premium-select"
+                                style="width: 100%; margin-top: 0.5rem; padding: 0.8rem; background: var(--surface); border: 1px solid var(--border-subtle); border-radius: 12px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: all 0.2s ease;">
+                                <option value="universal" selected>Основной (Универсальный)</option>
+                                <option value="unet">U-Net (Детальный)</option>
+                                <option value="yolo">YOLO (Быстрый)</option>
+                            </select>
                         </div>
 
-                        <p class="model-description" style="font-size: 0.75rem; margin-top: 0.5rem; line-height: 1.2;">
-                            <strong>U-Net:</strong> Высокая точность.<br>
-                            <strong>YOLO:</strong> Быстрая, общие рамки.
+                        <p class="model-description"
+                            style="font-size: 0.75rem; margin-top: 0.7rem; line-height: 1.3; color: var(--text-secondary);">
+                            <span style="color: var(--primary-light);">● Основной:</span> среднее между 2 моделями
+                            (самый точный вариант)<br>
+                            <span style="color: #60a5fa;">● U-net:</span> медленнее и завышает площадь<br>
+                            <span style="color: #fb923c;">● YOLO:</span> быстрее и уменьшает площадь
                         </p>
                     </div>
 

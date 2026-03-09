@@ -154,7 +154,38 @@ def process_image(image_bytes: bytes, show_boxes: bool = True, selected_classes:
         is_arugula = classify_image(image_pil)
         plant_name_ru = "Рукола" if is_arugula else "Пшеница"
 
-        if seg_model == 'unet':
+        if seg_model == 'universal':
+            res_yolo = _process_yolo(image_pil, is_arugula, show_boxes, selected_classes)
+            res_unet = _process_unet(image_pil, is_arugula, selected_classes, show_boxes)
+
+            if res_yolo.get('error'): return res_yolo
+            if res_unet.get('error'): return res_unet
+
+            # Combine metrics (average)
+            avg_metrics = {}
+            all_classes = set(res_yolo['class_metrics'].keys()) | set(res_unet['class_metrics'].keys())
+            
+            for c in all_classes:
+                m1 = res_yolo['class_metrics'].get(c, {'area': 0.0, 'length': 0.0, 'count': 0})
+                m2 = res_unet['class_metrics'].get(c, {'area': 0.0, 'length': 0.0, 'count': 0})
+                
+                avg_metrics[c] = {
+                    'area': (m1['area'] + m2['area']) / 2.0,
+                    'length': (m1['length'] + m2['length']) / 2.0,
+                    'count': max(m1['count'], m2['count']) # Or sum, but usually we want "how many plants"
+                }
+
+            result = res_unet.copy() # Use U-Net for visualization/base
+            result['class_metrics'] = avg_metrics
+            result['total_area'] = (res_yolo['total_area'] + res_unet['total_area']) / 2.0
+            result['total_length'] = (res_yolo['total_length'] + res_unet['total_length']) / 2.0
+            
+            # Re-generate charts with averaged metrics if possible
+            from core.utils import build_charts
+            area_bytes, bar_bytes = build_charts(avg_metrics)
+            result['chart_bytes'] = area_bytes
+            result['bar_chart_bytes'] = bar_bytes
+        elif seg_model == 'unet':
             result = _process_unet(image_pil, is_arugula, selected_classes, show_boxes)
         else:
             result = _process_yolo(image_pil, is_arugula, show_boxes, selected_classes)

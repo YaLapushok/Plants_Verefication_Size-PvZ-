@@ -529,8 +529,8 @@ async function processFiles(files) {
     }
 
     try {
-        const modelInput = document.querySelector('input[name="seg_model"]:checked');
-        const segModel = modelInput ? modelInput.value : 'unet';
+        const modelSelect = document.getElementById('seg-model-select');
+        const segModel = modelSelect ? modelSelect.value : 'universal';
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
