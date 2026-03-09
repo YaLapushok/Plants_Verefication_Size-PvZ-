@@ -3,18 +3,18 @@ import numpy as np
 import cv2
 from core.constants import BASE_SCALE_FACTOR
 
-def calculate_yolo_metrics(masks, classes, names, boxes, classes_to_show, yolo_ru_map):
+def calculate_yolo_metrics(masks_xy, classes, names, boxes, classes_to_show, yolo_ru_map):
     class_metrics = {}
     valid_indices = []
     
-    for i in range(len(masks)):
+    for i in range(len(masks_xy)):
         cls_name_ru = yolo_ru_map.get(names[int(classes[i])].lower(), names[int(classes[i])].lower())
         if cls_name_ru.lower() in [c.lower() for c in classes_to_show]:
             valid_indices.append(i)
-            mask = masks[i]
+            segment = masks_xy[i]
             _, _, w, h = boxes[i]
 
-            valid_pixels = np.count_nonzero(mask)
+            valid_pixels = cv2.contourArea(segment) if len(segment) >= 3 else 0.0
             area_mm2 = valid_pixels * (BASE_SCALE_FACTOR ** 2)
             length_mm = math.sqrt(w ** 2 + h ** 2) * BASE_SCALE_FACTOR
 
@@ -32,20 +32,9 @@ def calculate_unet_metrics(pred_orig, unet_class_names, selected_classes):
 
     for class_id in range(1, 4):  # skip background
         cls_name = unet_class_names[class_id]
-        mask = (pred_orig == class_id)
-        
-        # --- ROOT CLEANING ---
-        # If it's the root class (usually id 1), apply erosion to remove "free space" or noise
-        if class_id == 1:  # корень
-            mask_uint8 = mask.astype(np.uint8) * 255
-            # 3x3 kernel for subtle cleaning
-            kernel = np.ones((3, 3), np.uint8)
-            mask_uint8 = cv2.erode(mask_uint8, kernel, iterations=1)
-            mask = mask_uint8 > 0
-        # ---------------------
+        mask_bool = (pred_orig == class_id)
 
-        pixel_count = int(mask.sum())
-
+        pixel_count = int(mask_bool.sum())
         if pixel_count == 0:
             continue
 
@@ -54,14 +43,10 @@ def calculate_unet_metrics(pred_orig, unet_class_names, selected_classes):
                 continue
 
         available_classes.append(cls_name)
+        
         area_mm2 = pixel_count * (BASE_SCALE_FACTOR ** 2)
 
-        # Count components
-        mask_uint8 = mask.astype(np.uint8) * 255
-        num_labels, _, _, _ = cv2.connectedComponentsWithStats(mask_uint8, connectivity=8)
-        object_count = num_labels - 1
-        
-        coords = np.argwhere(mask)
+        coords = np.argwhere(mask_bool)
         if len(coords) > 0:
             r0, c0 = coords.min(axis=0)
             r1, c1 = coords.max(axis=0)
@@ -72,7 +57,7 @@ def calculate_unet_metrics(pred_orig, unet_class_names, selected_classes):
             length_mm = 0.0
 
         class_metrics[cls_name] = {
-            'count': object_count,
+            'count': 1,
             'area': area_mm2,
             'length': length_mm
         }

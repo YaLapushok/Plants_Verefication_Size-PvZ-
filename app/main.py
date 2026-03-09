@@ -107,7 +107,7 @@ async def api_filter(request: Request):
             return JSONResponse({'error': 'Analysis not found in DB'}, status_code=404)
 
         result = process_image(row['original_bytes'], show_boxes=show_boxes, 
-                               selected_classes=[c.lower() for c in selected_classes] if selected_classes else None,
+                               selected_classes=[c.lower() for c in selected_classes] if selected_classes is not None else None,
                                seg_model=row['seg_model'])
 
         if result.get('error'):

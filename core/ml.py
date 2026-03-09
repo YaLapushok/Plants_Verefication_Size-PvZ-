@@ -26,7 +26,8 @@ def _process_yolo(image_pil, is_arugula: bool, show_boxes: bool, selected_classe
     if not seg_results or len(seg_results) == 0 or seg_results[0].masks is None:
         return {'error': 'No segmentation results.'}
 
-    masks = seg_results[0].masks.data.cpu().numpy()
+    masks = seg_results[0].masks.data.cpu().numpy() if seg_results[0].masks is not None else []
+    masks_xy = seg_results[0].masks.xy if seg_results[0].masks is not None else []
     classes = seg_results[0].boxes.cls.cpu().numpy()
     names = seg_results[0].names
     boxes = seg_results[0].boxes.xywh.cpu().numpy()
@@ -35,16 +36,20 @@ def _process_yolo(image_pil, is_arugula: bool, show_boxes: bool, selected_classe
     available_classes = list(unique_classes)
     
     classes_to_show = unique_classes if selected_classes is None else set(selected_classes)
-    class_metrics, valid_indices = calculate_yolo_metrics(masks, classes, names, boxes, classes_to_show, YOLO_RU_MAP)
+    class_metrics, valid_indices = calculate_yolo_metrics(masks_xy, classes, names, boxes, classes_to_show, YOLO_RU_MAP)
 
     total_length = sum(d['length'] for d in class_metrics.values())
     total_area = sum(d['area'] for d in class_metrics.values())
 
     import copy
     fr = copy.deepcopy(seg_results[0])
-    if valid_indices and len(valid_indices) < len(masks):
-        fr.masks.data = fr.masks.data[valid_indices]
-        fr.boxes.data = fr.boxes.data[valid_indices]
+    if len(valid_indices) != len(masks):
+        fr.masks.data = fr.masks.data[valid_indices] if len(valid_indices) > 0 else []
+        fr.boxes.data = fr.boxes.data[valid_indices] if len(valid_indices) > 0 else []
+        if hasattr(fr.masks, 'xy'):
+            fr.masks.xy = [fr.masks.xy[idx] for idx in valid_indices] if valid_indices else []
+        if hasattr(fr.masks, 'xyn'):
+            fr.masks.xyn = [fr.masks.xyn[idx] for idx in valid_indices] if valid_indices else []
     
     annotated_img = plot_yolo_custom(fr, show_boxes=show_boxes)
     
@@ -92,7 +97,7 @@ def _process_unet(image_pil, is_arugula: bool, selected_classes: list | None = N
     for class_id, color in UNET_CLASS_COLORS.items():
         if class_id == 0: continue
         cls_name = UNET_CLASS_NAMES[class_id]
-        if selected_classes and cls_name.lower() not in [c.lower() for c in selected_classes]: continue
+        if selected_classes is not None and cls_name.lower() not in [c.lower() for c in selected_classes]: continue
         
         mask = (pred_orig == class_id)
         if not mask.any(): continue
@@ -106,7 +111,7 @@ def _process_unet(image_pil, is_arugula: bool, selected_classes: list | None = N
         for class_id, color in UNET_CLASS_COLORS.items():
             if class_id == 0: continue
             cls_name = UNET_CLASS_NAMES[class_id]
-            if selected_classes and cls_name.lower() not in [c.lower() for c in selected_classes]: continue
+            if selected_classes is not None and cls_name.lower() not in [c.lower() for c in selected_classes]: continue
             mask = (pred_orig == class_id)
             if not mask.any(): continue
             

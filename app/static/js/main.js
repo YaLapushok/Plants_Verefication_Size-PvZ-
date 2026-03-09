@@ -337,6 +337,7 @@ async function updateEditorView() {
             editor.aiCtx.drawImage(img, 0, 0);
         };
         img.src = `data:image/jpeg;base64,${resData.annotated_b64}`;
+        renderEditorMetrics(resData);
     }
 }
 
@@ -452,7 +453,17 @@ function renderEditorMetrics(data) {
     const grid = document.getElementById('editor-metrics');
     if (!grid) return;
     grid.innerHTML = '';
-    for (const [name, m] of Object.entries(data.class_metrics)) {
+
+    // Fixed order to prevent UI hopping
+    const order = ['корень', 'стебель', 'листок', 'колос'];
+    const sortedKeys = Object.keys(data.class_metrics).sort((a, b) => {
+        const ia = order.indexOf(a.toLowerCase());
+        const ib = order.indexOf(b.toLowerCase());
+        return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
+
+    for (const name of sortedKeys) {
+        const m = data.class_metrics[name];
         const item = document.createElement('div');
         item.className = 'metric-item compact';
         item.style.padding = '0.75rem';

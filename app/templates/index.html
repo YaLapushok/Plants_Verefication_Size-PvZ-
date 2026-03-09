@@ -106,7 +106,7 @@
 
         .result-image,
         .result-chart {
-            object-fit: cover !important;
+            object-fit: contain !important;
             cursor: zoom-in;
         }
 
@@ -478,7 +478,7 @@
                 <div class="cards-layout" style="display: flex; flex-direction: column; gap: 1.5rem;">
                     <div style="display: flex; gap: 1.5rem; align-items: flex-start;">
                         <div class="image-wrapper"
-                            style="border-radius: 12px; width: 50%; min-width: 400px; height: 400px; background: #000; position: relative; cursor: pointer;"
+                            style="border-radius: 12px; width: 55%; min-width: 400px; height: 500px; background: #000; position: relative; cursor: pointer;"
                             onclick="openEditor(this.closest('.results-container').dataset.analysisId)">
                             <img src="" alt="Результат" class="result-image main-img"
                                 style="height: 100%; width: 100%; object-fit: contain;">

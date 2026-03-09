@@ -19,13 +19,13 @@ UNET_CLASS_NAMES = {
 
 # Mapping English YOLO names to Russian
 YOLO_RU_MAP = {
-    'koren': 'корень',
+    'koren': 'листок',    # YOLO predicts 'koren' on the graphical leaves
     'stebel': 'стебель',
-    'listok': 'листок',
+    'listok': 'корень',   # YOLO predicts 'listok' on the graphical roots
     'kolos': 'колос',
-    'root': 'корень',
+    'root': 'листок',
     'stem': 'стебель',
-    'leaf': 'листок'
+    'leaf': 'корень'
 }
 
 # Colors for UI/Charts

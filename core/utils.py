@@ -24,14 +24,9 @@ def get_font(size=16):
 
 def plot_yolo_custom(result, show_boxes: bool = True) -> np.ndarray:
     img = result.orig_img.copy()
-    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-    pil_img = Image.fromarray(img_rgb)
-    draw = ImageDraw.Draw(pil_img)
-    font = get_font(16)
-
     boxes = result.boxes
     if boxes is None or len(boxes) == 0:
-        return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+        return img
 
     names_dict = result.names
     xyxy = boxes.xyxy.cpu().numpy()
@@ -48,6 +43,24 @@ def plot_yolo_custom(result, show_boxes: bool = True) -> np.ndarray:
         'leaf': (0, 120, 255),
     }
 
+    # Draw masks
+    if hasattr(result, 'masks') and result.masks is not None and hasattr(result.masks, 'xy'):
+        overlay = img.copy()
+        for i, xy in enumerate(result.masks.xy):
+            if len(xy) >= 3:
+                class_id = int(cls[i])
+                orig_name = names_dict.get(class_id, str(class_id))
+                orig_name_lower = str(orig_name).lower()
+                color_rgb = class_color_map_bgr.get(orig_name_lower, (128, 128, 128))
+                color_bgr = (color_rgb[2], color_rgb[1], color_rgb[0])
+                cv2.fillPoly(overlay, [np.int32(xy)], color_bgr)
+        cv2.addWeighted(overlay, 0.4, img, 0.6, 0, img)
+
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    pil_img = Image.fromarray(img_rgb)
+    draw = ImageDraw.Draw(pil_img)
+    font = get_font(16)
+
     for i in range(len(xyxy)):
         x1, y1, x2, y2 = map(int, xyxy[i])
         class_id = int(cls[i])
@@ -60,14 +73,13 @@ def plot_yolo_custom(result, show_boxes: bool = True) -> np.ndarray:
 
         if show_boxes:
             draw.rectangle([x1, y1, x2, y2], outline=color_rgb, width=2)
+            label = f"{ru_name} {confidence:.2f}"
+            bbox = draw.textbbox((x1, y1), label, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
 
-        label = f"{ru_name} {confidence:.2f}"
-        bbox = draw.textbbox((x1, y1), label, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-
-        draw.rectangle([x1, y1 - text_height - 8, x1 + text_width + 4, y1], fill=color_rgb)
-        draw.text((x1 + 2, y1 - text_height - 6), label, fill=(255, 255, 255), font=font)
+            draw.rectangle([x1, y1 - text_height - 8, x1 + text_width + 4, y1], fill=color_rgb)
+            draw.text((x1 + 2, y1 - text_height - 6), label, fill=(255, 255, 255), font=font)
 
     return cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
@@ -75,9 +87,13 @@ def build_charts(class_metrics: dict) -> tuple[bytes | None, bytes | None]:
     if not class_metrics:
         return None, None
 
-    labels = [n.capitalize() for n in class_metrics.keys()]
-    areas = [d['area'] for d in class_metrics.values()]
-    lengths = [d['length'] for d in class_metrics.values()]
+    # Fixed ordering to prevent random scattering of metrics
+    order = ['корень', 'стебель', 'листок', 'колос']
+    sorted_keys = sorted(class_metrics.keys(), key=lambda k: order.index(k.lower()) if k.lower() in order else 99)
+
+    labels = [k.capitalize() for k in sorted_keys]
+    areas = [class_metrics[k]['area'] for k in sorted_keys]
+    lengths = [class_metrics[k]['length'] for k in sorted_keys]
     colors = [COLOR_MAP.get(label.lower(), '#9966ff') for label in labels]
 
     def create_barh_chart(values, title, xlabel):
