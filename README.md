@@ -12,7 +12,7 @@
 
 ## 🎯 О проекте
 
-**PvZ (Plants Verification Size)** - веб-приложение с компьютерным зрением для автоматического биометрического анализа растений. Позволяет агрономам, селекционерам и исследователям за секунды измерять площадь листьев, длину корней и морфологию стеблей с точностью до ±3%.
+**PvZ (Plants Verification Size)** - веб-приложение с компьютерным зрением для автоматического биометрического анализа растений. Позволяет агрономам, селекционерам и исследователям за секунды измерять площадь, длину и морфологию листьев, корней и стеблей.
 
 ### 🔑 Ключевые возможности
 - 🤖 **Классификация:** Автоматическое определение типа растения (пшеница / руккола).
@@ -171,7 +171,7 @@ uvicorn app.main:app --port 8000 --reload
 
 - **Backend:** FastAPI, Uvicorn, Python 3.10+
 - **Frontend:** HTML5, CSS3, Vanilla JS, HTML5 Canvas API
-- **Machine Learning:** PyTorch, Ultralytics (YOLOv8/v11), Segmentation Models PyTorch (U-Net)
+- **Machine Learning:** PyTorch, Ultralytics (YOLOv26), Segmentation Models PyTorch (U-Net)
 - **Computer Vision:** OpenCV, NumPy
 - **Database:** SQLite
 
